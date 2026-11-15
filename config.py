@@ -102,10 +102,10 @@ class Config:
     PROJECT_TITLE = "AI-Based Personalized Learning Content Generator"
     _is_vercel = os.environ.get("VERCEL") in ("1", "true", "True") or bool(os.environ.get("VERCEL_ENV"))
     _DEFAULT_DB = "/tmp/app.db" if _is_vercel else (INSTANCE_DIR / "app.db").as_posix()
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",
-        f"sqlite:///{_DEFAULT_DB}",
-    )
+    _raw_db = os.environ.get("DATABASE_URL", "").strip()
+    if _raw_db.startswith("postgres://"):
+        _raw_db = _raw_db.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = _raw_db or f"sqlite:///{_DEFAULT_DB}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     AUTO_INIT_DB = True
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024
