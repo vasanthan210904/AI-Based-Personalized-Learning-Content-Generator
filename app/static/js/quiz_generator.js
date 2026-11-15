@@ -73,7 +73,7 @@
     LF.showToast(`Selected "${targetTopic}"! Ready to generate quiz.`, "info");
   });
 
-  // Time estimate on question count change
+  // Time estimate on question count change and robust pill click handling
   const timeLabels = {
     "5": "⏱️ ~5 min sprint",
     "10": "⏱️ ~10 min standard test",
@@ -81,13 +81,37 @@
     "20": "⏱️ ~20 min mastery challenge"
   };
 
-  form.querySelectorAll('input[name="num_questions"]').forEach((radio) => {
-    radio.addEventListener("change", (e) => {
-      if (timeEstimateBadge && timeLabels[e.target.value]) {
-        timeEstimateBadge.textContent = timeLabels[e.target.value];
+  const countPills = form.querySelectorAll(".count-pill");
+  function syncPillActive() {
+    countPills.forEach((pill) => {
+      const radio = pill.querySelector('input[type="radio"]');
+      if (radio && radio.checked) {
+        pill.classList.add("active");
+        if (timeEstimateBadge && timeLabels[radio.value]) {
+          timeEstimateBadge.textContent = timeLabels[radio.value];
+        }
+      } else {
+        pill.classList.remove("active");
       }
     });
+  }
+
+  countPills.forEach((pill) => {
+    const radio = pill.querySelector('input[type="radio"]');
+    pill.addEventListener("click", () => {
+      if (radio && !radio.checked) {
+        radio.checked = true;
+        radio.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      syncPillActive();
+    });
   });
+
+  form.querySelectorAll('input[name="num_questions"]').forEach((radio) => {
+    radio.addEventListener("change", syncPillActive);
+  });
+
+  syncPillActive();
 
   function fillTopics(selectedId) {
     if (!topicSelect) return;

@@ -37,7 +37,10 @@ def _is_api_request() -> bool:
 def create_app(config_object=None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config_object or Config)
-    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    try:
+        Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
 
     db.init_app(app)
     login_manager.init_app(app)

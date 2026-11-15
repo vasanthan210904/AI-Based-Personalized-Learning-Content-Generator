@@ -1317,12 +1317,34 @@ textarea.form-control { min-height: 110px; }
 .difficulty-card.diff-medium:has(input:checked) > i { background: var(--amber-500); color: #fff; }
 .difficulty-card.diff-hard:has(input:checked) { border-color: var(--rose-500); background: var(--rose-50); }
 .difficulty-card.diff-hard:has(input:checked) > i { background: var(--rose-500); color: #fff; }
-.count-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-.count-pill { position: relative; }
+.count-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.count-pill { position: relative; cursor: pointer; }
 .count-pill input { position: absolute; opacity: 0; pointer-events: none; }
-.count-pill span { display: inline-flex; align-items: center; justify-content: center; min-width: 46px; height: 40px; border: 1px solid var(--line); border-radius: 10px; font-size: 0.85rem; font-weight: 700; color: var(--ink-600); cursor: pointer; background: #fff; }
-.count-pill:hover span { border-color: #a5b4fc; }
-.count-pill:has(input:checked) span { background: var(--indigo-600); border-color: var(--indigo-600); color: #fff; }
+.count-pill span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink-700);
+  cursor: pointer;
+  background: #fff;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.count-pill:hover span { border-color: #a5b4fc; background: var(--surface-soft); }
+.count-pill input:checked + span,
+.count-pill.active span,
+.count-pill:has(input:checked) span {
+  background: var(--indigo-600) !important;
+  border-color: var(--indigo-600) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);
+}
 .level-readout { display: flex; align-items: center; gap: 0.5rem; height: 40px; padding: 0 0.8rem; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px; font-size: 0.82rem; }
 .level-readout i { color: var(--indigo-500); }
 .level-readout strong { color: var(--ink-800); font-size: 0.82rem; }

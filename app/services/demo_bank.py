@@ -1332,6 +1332,149 @@ def _build_generic_quiz(topic_name: str, difficulty: str, count: int) -> tuple[l
             ],
             "correct_index": 2,
             "explanation": f"Accurate documentation and technical specifications ensure consistent implementation and operational safety for {topic_name}."
+        },
+        {
+            "question": f"Which lifecycle phase is critical to ensure reliability in {topic_name}?",
+            "options": [
+                f"Continuous integration, automated regression testing, and verification for {topic_name}.",
+                "Deploying unreviewed changes directly to production without staging.",
+                "Disabling logging and monitoring to conceal runtime exceptions.",
+                "Eliminating code reviews to artificially accelerate development speed."
+            ],
+            "correct_index": 0,
+            "explanation": f"Reliability in {topic_name} requires systematic automated testing, continuous integration, and validation before deployment."
+        },
+        {
+            "question": f"How should exception or error states be handled within {topic_name} implementations?",
+            "options": [
+                "Silently suppressing all errors and continuing execution in corrupted state.",
+                f"Graceful recovery with structured error logging, fallback paths, and clear error signals in {topic_name}.",
+                "Terminating the entire host operating system upon any unexpected input.",
+                "Hardcoding retry loops with zero delay until memory exhaustion occurs."
+            ],
+            "correct_index": 1,
+            "explanation": f"Robust {topic_name} architectures isolate failures, log diagnostics, and employ controlled fallback or recovery mechanisms."
+        },
+        {
+            "question": f"What is the impact of data volume growth on {topic_name} operations?",
+            "options": [
+                "Data volume has no computational or physical relationship to execution efficiency.",
+                "Processing speed always increases exponentially as storage requirements grow.",
+                f"Resource requirements and algorithmic complexity dictate how {topic_name} scales under load.",
+                "High data volume guarantees automatic zero-latency responses."
+            ],
+            "correct_index": 2,
+            "explanation": f"Scaling {topic_name} demands careful analysis of asymptotic time and space complexity as input dimensions expand."
+        },
+        {
+            "question": f"Which security principle is most vital when designing modules based on {topic_name}?",
+            "options": [
+                "Granting universal administrative privileges to all untrusted clients.",
+                "Transmitting all credentials and session tokens in unencrypted plaintext.",
+                "Disabling input sanitization to allow unrestricted payload injection.",
+                f"Principle of least privilege, strict input validation, and defensive boundary checks for {topic_name}."
+            ],
+            "correct_index": 3,
+            "explanation": f"Security in {topic_name} centers on defensive programming: validating all inputs, restricting privilege scopes, and protecting boundaries."
+        },
+        {
+            "question": f"When evaluating alternative approaches against {topic_name}, what benchmark is most objective?",
+            "options": [
+                f"Empirical profiling, benchmark suites, and standardized workload comparisons for {topic_name}.",
+                "Subjective aesthetic preferences of the individual developer.",
+                "The alphabetical order of the competing framework names.",
+                "The age of the domain registration hosting the project."
+            ],
+            "correct_index": 0,
+            "explanation": f"Objective technology evaluation requires empirical performance profiling, resource measurement, and realistic workload testing."
+        },
+        {
+            "question": f"What is a primary indicator of technical debt when maintaining {topic_name}?",
+            "options": [
+                "Comprehensive automated test coverage and up-to-date architectural diagrams.",
+                f"High code coupling, absent regression tests, and fragile workarounds in {topic_name}.",
+                "Using modern standard library utilities instead of custom reinvented routines.",
+                "Regular code reviews and strict static analysis enforcement."
+            ],
+            "correct_index": 1,
+            "explanation": f"Technical debt manifests as tight coupling, lack of unit and integration tests, and undocumented workarounds."
+        },
+        {
+            "question": f"How does modular decomposition benefit complex implementations of {topic_name}?",
+            "options": [
+                "It mandates that all application logic reside within a single monolithic script file.",
+                "It prevents team collaboration by locking files into binary proprietary blobs.",
+                f"It isolates concerns, simplifies testing, and enables independent maintenance of {topic_name} components.",
+                "It triples the memory footprint with no structural advantage."
+            ],
+            "correct_index": 2,
+            "explanation": f"Modularity in {topic_name} separates concerns into manageable, independently testable, and reusable building blocks."
+        },
+        {
+            "question": f"In concurrent or multi-threaded scenarios involving {topic_name}, which risk must be mitigated?",
+            "options": [
+                "Excessive font rendering overhead in terminal log output.",
+                "Compiler optimization reducing code size too aggressively.",
+                "Accidental deletion of empty comments in documentation.",
+                f"Race conditions, data corruption, and deadlocks in shared {topic_name} state."
+            ],
+            "correct_index": 3,
+            "explanation": f"Concurrency requires careful synchronization, immutability, or lock management to prevent race conditions in {topic_name}."
+        },
+        {
+            "question": f"What role does continuous refactoring serve during the evolution of {topic_name}?",
+            "options": [
+                f"Improving internal code structure, readability, and performance without changing {topic_name} observable behavior.",
+                "Arbitrarily renaming public API endpoints to break existing downstream consumers.",
+                "Removing all type hints and comments to obfuscate logic.",
+                "Reverting tested bugfixes to prior broken versions."
+            ],
+            "correct_index": 0,
+            "explanation": f"Refactoring refines internal code quality and maintainability while preserving the external functional contracts of {topic_name}."
+        },
+        {
+            "question": f"Which validation strategy provides the earliest feedback on {topic_name} correctness?",
+            "options": [
+                "Manual testing conducted six months after production release.",
+                f"Automated unit testing with isolated test doubles and assertions for {topic_name}.",
+                "Waiting for end users to report system crashes via public issue trackers.",
+                "Relying solely on runtime log volume without automated assertions."
+            ],
+            "correct_index": 1,
+            "explanation": f"Automated unit tests execute rapidly in developer workflows, catching regression defects before integration."
+        },
+        {
+            "question": f"When configuring memory management for {topic_name}, what objective is paramount?",
+            "options": [
+                "Allocating unlimited memory buffers without cleanup or garbage collection.",
+                "Disabling heap memory and storing all data in environment variables.",
+                f"Preventing memory leaks, minimizing overhead, and ensuring deterministic lifecycle for {topic_name}.",
+                "Forcing all data structures to reside on physical swap disks."
+            ],
+            "correct_index": 2,
+            "explanation": f"Deterministic resource management and timely deallocation prevent degradation and out-of-memory crashes in {topic_name}."
+        },
+        {
+            "question": f"How do standardized conventions and style guides impact teams working with {topic_name}?",
+            "options": [
+                "They slow down development with no measurable benefit to code clarity.",
+                "They are strictly optional and should never be adopted on engineering teams.",
+                "They prevent compilers from optimizing intermediate byte representations.",
+                f"They foster consistency, accelerate code reviews, and lower onboarding friction for {topic_name}."
+            ],
+            "correct_index": 3,
+            "explanation": f"Code conventions establish shared readability standards, making {topic_name} repositories easier to review and maintain."
+        },
+        {
+            "question": f"What is the purpose of regression testing when updating {topic_name} modules?",
+            "options": [
+                f"Verifying that recent changes have not inadvertently broken existing {topic_name} functionality.",
+                "Confirming that compilation fails for valid inputs.",
+                "Ensuring that test execution takes longer on each iteration.",
+                "Deleting previous tests to show 100% artificial pass rates."
+            ],
+            "correct_index": 0,
+            "explanation": f"Regression suites verify that additions or refactors have not damaged previously validated behavior in {topic_name}."
         }
     ]
     
@@ -1367,7 +1510,19 @@ def get_demo_quiz(topic_name: str, difficulty: str, count: int) -> tuple[list[di
     others = [q for q in pack["quiz"] if q["difficulty"] != difficulty]
     rng.shuffle(preferred)
     rng.shuffle(others)
-    chosen = (preferred + others)[: max(1, min(count, len(pack["quiz"])))]
+    chosen = list(preferred + others)
+
+    # If the user requested more questions than in the curated pack (e.g. 10, 15, 20),
+    # supplement with educational topic questions so the requested count is always fulfilled!
+    if len(chosen) < count:
+        supplemental, _ = _build_generic_quiz(topic_name, difficulty, count)
+        for sq in supplemental:
+            if len(chosen) >= count:
+                break
+            if not any(sq["question"] == c.get("question") for c in chosen):
+                chosen.append(sq)
+
+    chosen = chosen[:count]
     questions = [
         {
             "question": q["question"],
@@ -1378,11 +1533,9 @@ def get_demo_quiz(topic_name: str, difficulty: str, count: int) -> tuple[list[di
         for q in chosen
     ]
     note = (
-        f"Demo mode: {len(questions)} sample questions from the offline {pack['title']} quiz bank. "
-        "Not generated by a live AI model."
+        f"Demo mode: {len(questions)} sample questions for '{topic_name}' ({difficulty} level). "
+        "Generated from the offline academic curriculum bank."
     )
-    if len(questions) < count:
-        note += f" The demo bank supports up to {len(questions)} questions for this topic."
     return questions, note
 
 
