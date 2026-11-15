@@ -31,14 +31,14 @@ def _env_float(name: str, default: float) -> float:
         return default
 
 
-_PROVIDER = os.environ.get("AI_PROVIDER", "nvidia").strip().lower()
+_PROVIDER = os.environ.get("AI_PROVIDER", "groq").strip().lower()
 _DEFAULT_MODEL = {
+    "groq": "qwen/qwen3.8-27b",
+    "gemini": "gemma-4-26b-a4b-it",
     "nvidia": "deepseek-ai/deepseek-v4.1-flash",
-    "gemini": "gemini-3.5-flash",
+    "openrouter": "nvidia/nemotron-3.5-lightning:free",
     "openai": "gpt-4o-mini",
-    "openrouter": "openai/gpt-4o-mini",
-    "groq": "openai/gpt-oss-120b",
-}.get(_PROVIDER, "gpt-4o-mini")
+}.get(_PROVIDER, "qwen/qwen3.8-27b")
 _DEFAULT_BASE_URL = {
     "nvidia": "https://integrate.api.nvidia.com/v1",
     "openai": "https://api.openai.com/v1",
@@ -46,9 +46,7 @@ _DEFAULT_BASE_URL = {
     "groq": "https://api.groq.com/openai/v1",
 }.get(_PROVIDER, "")
 
-# A single generic AI_API_KEY still works for any provider. Provider-specific
-# variables take precedence, which makes it easy to keep several keys in .env
-# and switch AI_PROVIDER without editing the key each time.
+# Provider-specific keys
 _NVIDIA_API_KEY = (
     os.environ.get("NVIDIA_API_KEY", "").strip()
     or os.environ.get("AI_API_KEY", "").strip()
@@ -66,11 +64,18 @@ _GROQ_API_KEY = (
     or os.environ.get("OPENAI_API_KEY", "").strip()
     or os.environ.get("AI_API_KEY", "").strip()
 )
+_OPENROUTER_API_KEY = (
+    os.environ.get("OPENROUTER_API_KEY", "").strip()
+    or os.environ.get("OPENAI_API_KEY", "").strip()
+    or os.environ.get("AI_API_KEY", "").strip()
+)
+_HUGGINGFACE_API_KEY = os.environ.get("HUGGINGFACE_API_KEY", "").strip()
+
 _PROVIDER_KEY = {
     "nvidia": _NVIDIA_API_KEY,
     "gemini": _GEMINI_API_KEY,
     "openai": _OPENAI_API_KEY,
-    "openrouter": _OPENAI_API_KEY,
+    "openrouter": _OPENROUTER_API_KEY,
     "groq": _GROQ_API_KEY,
 }.get(_PROVIDER, os.environ.get("AI_API_KEY", "").strip())
 
@@ -129,6 +134,10 @@ class Config:
     NVIDIA_MODEL = os.environ.get(
         "NVIDIA_MODEL", "deepseek-ai/deepseek-v4.1-flash"
     ).strip()
+    GROQ_API_KEY = _GROQ_API_KEY
+    GEMINI_API_KEY = _GEMINI_API_KEY
+    OPENROUTER_API_KEY = _OPENROUTER_API_KEY
+    HUGGINGFACE_API_KEY = _HUGGINGFACE_API_KEY
     AI_TIMEOUT = _env_float("AI_TIMEOUT", 120.0)
     # After a timeout/server error, skip live calls for this many seconds and
     # serve clearly labelled demo content immediately instead of hanging again.

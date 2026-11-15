@@ -175,29 +175,106 @@ class AIService:
         temperature = (
             self.config.get("AI_TEMPERATURE", 0.55) if temperature is None else temperature
         )
-        raw = self._call_provider(system_prompt, user_prompt, max_tokens, temperature)
+        primary_error = None
         try:
-            return extract_json(raw)
-        except JsonParseError:
-            logger.warning("AI returned invalid JSON; attempting one repair retry.")
-            repair_prompt = (
-                f"{user_prompt}\n\n"
-                "IMPORTANT: Your previous response was not valid JSON. "
-                "Return ONLY the JSON object, with no markdown fences, comments or extra text. "
-                f"Previous response started with: {raw[:1200]}"
-            )
-            raw_retry = self._call_provider(
-                system_prompt, repair_prompt, max_tokens, temperature
-            )
+            raw = self._call_provider(system_prompt, user_prompt, max_tokens, temperature)
             try:
+                return extract_json(raw)
+            except JsonParseError:
+                logger.warning("AI returned invalid JSON; attempting one repair retry.")
+                repair_prompt = (
+                    f"{user_prompt}\n\n"
+                    "IMPORTANT: Your previous response was not valid JSON. "
+                    "Return ONLY the JSON object, with no markdown fences, comments or extra text. "
+                    f"Previous response started with: {raw[:1200]}"
+                )
+                raw_retry = self._call_provider(
+                    system_prompt, repair_prompt, max_tokens, temperature
+                )
                 return extract_json(raw_retry)
-            except JsonParseError as exc:
-                logger.error("AI repair retry failed: %s", exc)
-                raise AIServiceError(
-                    "The AI returned a response we could not read. Please try again.",
-                    code="ai_invalid_response",
-                    status=502,
-                ) from None
+        except AIServiceError as exc:
+            logger.warning("Primary provider %s failed: %s", self.provider, exc)
+            primary_error = exc
+        except Exception as exc:
+            logger.warning("Primary provider %s unexpected error: %s", self.provider, exc)
+            primary_error = AIServiceError(str(exc), code="ai_error", status=502)
+
+        # Failover to alternate free providers if auto-failover is enabled
+        alternates = self._get_alternate_providers()
+        for alt in alternates:
+            try:
+                logger.info("Failing over to alternate AI: %s (%s)", alt["provider"], alt["model"])
+                raw_alt = self._call_alternate(alt, system_prompt, user_prompt, max_tokens, temperature)
+                return extract_json(raw_alt)
+            except Exception as alt_exc:
+                logger.warning("Alternate AI %s failed: %s", alt["provider"], alt_exc)
+
+        if primary_error:
+            raise primary_error
+        raise AIServiceError("AI generation failed across all providers.", code="ai_invalid_response", status=502)
+
+    def _get_alternate_providers(self) -> list[dict]:
+        """Returns alternate configured free providers for seamless failover."""
+        if not self.config.get("AI_AUTO_FAILOVER", False):
+            return []
+        alts = []
+        if self.provider != "groq" and self.config.get("GROQ_API_KEY"):
+            alts.append({
+                "provider": "groq",
+                "model": "qwen/qwen3.8-27b",
+                "base_url": "https://api.groq.com/openai/v1",
+                "api_key": self.config["GROQ_API_KEY"],
+            })
+        if self.provider != "openrouter" and self.config.get("OPENROUTER_API_KEY"):
+            alts.append({
+                "provider": "openrouter",
+                "model": "nvidia/nemotron-3.5-lightning:free",
+                "base_url": "https://openrouter.ai/api/v1",
+                "api_key": self.config["OPENROUTER_API_KEY"],
+            })
+        if self.provider != "gemini" and self.config.get("GEMINI_API_KEY"):
+            alts.append({
+                "provider": "gemini",
+                "model": "gemma-4-26b-a4b-it",
+                "base_url": "",
+                "api_key": self.config["GEMINI_API_KEY"],
+            })
+        return alts
+
+    def _call_alternate(
+        self, alt: dict, system_prompt: str, user_prompt: str, max_tokens: int, temperature: float
+    ) -> str:
+        if alt["provider"] == "gemini":
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{alt['model']}:generateContent?key={alt['api_key']}"
+            payload = {
+                "contents": [{"parts": [{"text": f"{system_prompt}\n\n{user_prompt}"}]}],
+                "generationConfig": {"temperature": temperature, "maxOutputTokens": max_tokens},
+            }
+            res = requests.post(url, json=payload, timeout=self._timeout())
+            data = res.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        else:
+            url = f"{alt['base_url'].rstrip('/')}/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {alt['api_key']}",
+                "Content-Type": "application/json",
+            }
+            if alt["provider"] == "openrouter":
+                headers["HTTP-Referer"] = "http://localhost:5000"
+                headers["X-Title"] = "LearnForge AI"
+            payload = {
+                "model": alt["model"],
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
+            res = requests.post(url, headers=headers, json=payload, timeout=self._timeout())
+            data = res.json()
+            msg = data["choices"][0]["message"]
+            return (msg.get("content") or msg.get("reasoning") or "").strip()
 
     # ------------------------------------------------------------------
     # Provider calls
@@ -306,7 +383,10 @@ class AIService:
             raise self._invalid_provider_response() from None
 
         try:
-            text = (data["choices"][0]["message"]["content"] or "").strip()
+            msg = data["choices"][0]["message"]
+            text = (msg.get("content") or "").strip()
+            if not text and msg.get("reasoning"):
+                text = msg.get("reasoning").strip()
         except (KeyError, IndexError, TypeError):
             raise self._invalid_provider_response() from None
         if not text:
