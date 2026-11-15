@@ -21,6 +21,11 @@ def app():
     # Tests must never reach a real AI provider by accident.
     application.config.update(
         AI_API_KEY="",
+        GROQ_API_KEY="",
+        GEMINI_API_KEY="",
+        NVIDIA_API_KEY="",
+        OPENAI_API_KEY="",
+        OPENROUTER_API_KEY="",
         AI_DEMO_MODE="auto",
         AI_FAILURE_COOLDOWN=120,
     )

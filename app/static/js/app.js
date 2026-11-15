@@ -430,6 +430,92 @@
     });
   }
 
+  /* ------------------------------------------------------------------ */
+  /* AI Model Switcher                                                  */
+  /* ------------------------------------------------------------------ */
+  const ENGINE_LABELS = {
+    "groq:qwen/qwen3.8-27b": "Groq · Qwen 2.5",
+    "groq:openai/gpt-oss-120b": "Groq · DeepSeek 120B",
+    "gemini:gemma-4-26b-a4b-it": "Gemini · Gemma 4",
+    "openrouter:nvidia/nemotron-3.5-lightning:free": "OpenRouter · Nemotron",
+    "offline:curriculum": "Academic Engine",
+  };
+
+  function updateActiveModelDisplay(engineKey) {
+    const label = ENGINE_LABELS[engineKey] || "AI Engine";
+    const labelEl = document.getElementById("activeModelLabel");
+    if (labelEl) {
+      labelEl.textContent = label;
+    }
+    const pill = document.getElementById("aiModelSelectorBtn");
+    if (pill) {
+      if (engineKey === "offline:curriculum") {
+        pill.classList.remove("live");
+        pill.classList.add("demo");
+      } else {
+        pill.classList.remove("demo");
+        pill.classList.add("live");
+      }
+    }
+
+    // Sync with in-page generator dropdowns if present
+    const genSelect = document.getElementById("aiEngineSelect");
+    if (genSelect && genSelect.value !== engineKey) {
+      genSelect.value = engineKey;
+      genSelect.dispatchEvent(new Event("change"));
+    }
+    const quizSelect = document.getElementById("quizAiEngineSelect");
+    if (quizSelect && quizSelect.value !== engineKey) {
+      quizSelect.value = engineKey;
+      quizSelect.dispatchEvent(new Event("change"));
+    }
+  }
+
+  function initAiModelSwitcher() {
+    // Restore preference
+    try {
+      const savedEngine = localStorage.getItem("lf_selected_engine");
+      if (savedEngine && ENGINE_LABELS[savedEngine]) {
+        updateActiveModelDisplay(savedEngine);
+      }
+    } catch (_) {}
+
+    document.querySelectorAll(".model-switch-item").forEach((item) => {
+      item.addEventListener("click", (e) => {
+        e.preventDefault();
+        const engine = item.dataset.engine;
+        if (!engine) return;
+        try {
+          localStorage.setItem("lf_selected_engine", engine);
+        } catch (_) {}
+        updateActiveModelDisplay(engine);
+        LF.showToast(`Switched active AI engine to ${ENGINE_LABELS[engine] || engine}`, "success");
+      });
+    });
+
+    // Listen to changes from page-level dropdowns
+    const genSelect = document.getElementById("aiEngineSelect");
+    if (genSelect) {
+      genSelect.addEventListener("change", () => {
+        const val = genSelect.value;
+        try {
+          localStorage.setItem("lf_selected_engine", val);
+        } catch (_) {}
+        updateActiveModelDisplay(val);
+      });
+    }
+    const quizSelect = document.getElementById("quizAiEngineSelect");
+    if (quizSelect) {
+      quizSelect.addEventListener("change", () => {
+        const val = quizSelect.value;
+        try {
+          localStorage.setItem("lf_selected_engine", val);
+        } catch (_) {}
+        updateActiveModelDisplay(val);
+      });
+    }
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     initTheme();
     initSidebar();
@@ -437,5 +523,6 @@
     initFlashMessages();
     initContentDeletes();
     initBookmarkToggles();
+    initAiModelSwitcher();
   });
 })();
