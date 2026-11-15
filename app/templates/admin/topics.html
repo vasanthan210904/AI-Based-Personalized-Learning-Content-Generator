@@ -1,0 +1,126 @@
+{% extends "layouts/app.html" %}
+{% block title %}Manage topics{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Administration · Catalog</span>
+    <h1>Topics</h1>
+    <p class="page-subtitle">Topics power content generation, quizzes and study plans.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.subjects') }}"><i class="bi bi-journal-bookmark"></i> Subjects</a>
+    <button class="btn btn-primary" type="button" data-open-topic-modal>
+      <i class="bi bi-plus-lg"></i> New topic
+    </button>
+  </div>
+</section>
+
+<section class="panel">
+  <form class="filter-bar" method="get" action="{{ url_for('admin.topics') }}">
+    <select class="form-select filter-select" name="subject" aria-label="Filter by subject">
+      <option value="">All subjects</option>
+      {% for subject in subjects %}
+        <option value="{{ subject.id }}" {{ 'selected' if subject_id == subject.id else '' }}>{{ subject.subject_name }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Filter</button>
+    {% if subject_id %}<a class="btn btn-light" href="{{ url_for('admin.topics') }}">Clear</a>{% endif %}
+    <span class="filter-count">{{ topics|length }} topic{{ '' if topics|length == 1 else 's' }}</span>
+  </form>
+
+  {% if topics %}
+    <div class="table-responsive">
+      <table class="lf-table">
+        <thead>
+          <tr>
+            <th>Topic</th>
+            <th>Subject</th>
+            <th>Materials</th>
+            <th>Created</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for topic in topics %}
+            <tr data-topic-row="{{ topic.id }}">
+              <td>
+                <strong>{{ topic.topic_name }}</strong>
+                {% if topic.description %}<div class="tiny-muted">{{ topic.description }}</div>{% endif %}
+              </td>
+              <td><span class="chip chip-muted">{{ topic.subject.subject_name }}</span></td>
+              <td><span class="chip chip-indigo">{{ content_counts.get(topic.id, 0) }}</span></td>
+              <td class="tiny-muted">{{ topic.created_at|nice_date }}</td>
+              <td class="text-end">
+                <button class="icon-btn" type="button" title="Edit topic" aria-label="Edit topic"
+                        data-edit-topic="{{ topic.id }}"
+                        data-topic-name="{{ topic.topic_name }}"
+                        data-topic-description="{{ topic.description or '' }}"
+                        data-topic-subject="{{ topic.subject_id }}">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="icon-btn danger" type="button" title="Delete topic" aria-label="Delete topic"
+                        data-delete-topic="{{ topic.id }}"
+                        data-topic-name="{{ topic.topic_name }}">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted-note mb-0">No topics found for this filter.</p>
+  {% endif %}
+</section>
+
+<div class="modal fade" id="topicModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content lf-modal">
+      <form id="topicForm" data-topic-modal-form novalidate>
+        <div class="modal-header border-0 px-4 pt-4">
+          <div>
+            <span class="eyebrow">Catalog</span>
+            <h2 class="modal-title" id="topicModalTitle">New topic</h2>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body px-4">
+          <input type="hidden" id="topicId" name="topic_id" value="">
+          <div class="mb-3">
+            <label class="form-label" for="topicSubject">Subject</label>
+            <select class="form-select" id="topicSubject" name="subject_id" required>
+              {% for subject in subjects %}
+                <option value="{{ subject.id }}" {{ 'selected' if subject_id == subject.id else '' }}>{{ subject.subject_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="topicName">Topic name</label>
+            <input class="form-control" type="text" id="topicName" name="topic_name"
+                   maxlength="160" placeholder="e.g. Sorting Algorithms" required>
+          </div>
+          <div class="mb-1">
+            <label class="form-label" for="topicDescription">Description</label>
+            <textarea class="form-control" id="topicDescription" name="description" rows="3"
+                      maxlength="1000" placeholder="What will the student learn?"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0 px-4 pb-4 pt-2">
+          <button class="btn btn-light" type="button" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" type="submit" id="topicSubmitButton">
+            <i class="bi bi-check-lg"></i> Save topic
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script id="adminConfig" type="application/json">{{ {"topicsApi": url_for('admin_api.create_topic')} | tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_catalog.js') }}"></script>
+{% endblock %}

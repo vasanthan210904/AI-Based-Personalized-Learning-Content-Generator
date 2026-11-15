@@ -1,0 +1,50 @@
+<header class="app-topbar">
+  <div class="topbar-left">
+    <button class="icon-btn d-lg-none" type="button" data-sidebar-toggle aria-label="Open navigation">
+      <i class="bi bi-list"></i>
+    </button>
+    <div class="topbar-context">
+      <span class="topbar-eyebrow">{{ 'Administration console' if current_user.is_admin else 'Personalized learning workspace' }}</span>
+      <span class="topbar-title">{{ 'Platform overview' if current_user.is_admin else 'Welcome back, ' ~ current_user.first_name }}</span>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark theme" title="Switch theme">
+      <i class="bi bi-moon-stars"></i>
+    </button>
+
+    <span class="ai-pill {{ 'live' if ai_status.state == 'live' else 'demo' }}" title="{{ ai_status.label }}">
+      <span class="dot"></span>
+      {{ 'Live AI' if ai_status.state == 'live' else 'Demo fallback' if ai_status.state == 'fallback' else 'Demo mode' }}
+    </span>
+
+    <div class="dropdown">
+      <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="avatar">{{ current_user.initials }}</span>
+        <span class="user-chip-text">
+          <strong>{{ current_user.first_name }}</strong>
+          <small>{{ 'Admin' if current_user.is_admin else 'Student' }}</small>
+        </span>
+        <i class="bi bi-chevron-down"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end lf-dropdown">
+        {% if current_user.is_admin %}
+          <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="bi bi-speedometer2"></i> Admin dashboard</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('admin.subjects') }}"><i class="bi bi-journal-bookmark"></i> Manage subjects</a></li>
+        {% else %}
+          <li><a class="dropdown-item" href="{{ url_for('student.profile') }}"><i class="bi bi-person"></i> My profile</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('student.preferences') }}"><i class="bi bi-sliders2"></i> Learning preferences</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('progress.index') }}"><i class="bi bi-graph-up-arrow"></i> My progress</a></li>
+        {% endif %}
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form method="post" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right"></i> Sign out</button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </div>
+</header>

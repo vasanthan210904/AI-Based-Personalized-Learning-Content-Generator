@@ -1,0 +1,255 @@
+{% extends "layouts/app.html" %}
+{% from "layouts/_macros.html" import stat_card, empty_state with context %}
+{% block title %}My progress{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Learning analytics</span>
+    <h1>Your progress, from real data.</h1>
+    <p class="page-subtitle">
+      Every number here is calculated from your stored materials, quiz attempts and study plans.
+      Nothing is a placeholder.
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('learning.history') }}"><i class="bi bi-journal-text"></i> Materials</a>
+    <a class="btn btn-primary" href="{{ url_for('study.planner') }}"><i class="bi bi-calendar2-week"></i> Study planner</a>
+  </div>
+</section>
+
+{% if not summary.has_activity %}
+  <div class="result-callout info">
+    <i class="bi bi-info-circle"></i>
+    <div>
+      <strong>Your analytics start with your first activity.</strong>
+      <span>Generate a material or take a quiz, and this page will fill with real coverage, score and streak data.</span>
+    </div>
+  </div>
+{% endif %}
+
+<section class="stats-grid">
+  {{ stat_card('bi-graph-up-arrow', 'Learning progress', summary.learning_progress ~ '%', 'Average of coverage and mastery', 'indigo') }}
+  {{ stat_card('bi-collection', 'Topic coverage', summary.coverage ~ '%', summary.topics_studied ~ ' of ' ~ summary.total_topics_available ~ ' topics', 'teal') }}
+  {{ stat_card('bi-patch-check', 'Quiz mastery', summary.mastery ~ '%', summary.quiz_attempts ~ ' attempt' ~ ('' if summary.quiz_attempts == 1 else 's'), 'violet') }}
+  {{ stat_card('bi-fire', 'Study streak', summary.streak ~ (' day' if summary.streak == 1 else ' days'), 'Consecutive active days', 'amber') }}
+</section>
+
+<div class="row g-4 mt-1">
+  <div class="col-xl-8">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Activity over the last 14 days</h2>
+          <p>Materials generated plus quiz attempts per day.</p>
+        </div>
+        <span class="chip chip-indigo" id="activityTotal">—</span>
+      </div>
+      <div class="chart-box">
+        <div class="activity-chart" id="activityChart" role="img" aria-label="Activity bar chart for the last 14 days"></div>
+        <div class="activity-axis" id="activityAxis"></div>
+      </div>
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>Quiz score trend</h2>
+          <p>Your most recent attempts, oldest to newest.</p>
+        </div>
+      </div>
+      {% if progress.score_trend %}
+        <div class="chart-box">
+          <div class="trend-chart" id="trendChart" role="img" aria-label="Line chart of recent quiz percentages"></div>
+          <div class="trend-labels" id="trendLabels"></div>
+        </div>
+      {% else %}
+        <p class="muted-note mb-0">No quiz attempts yet. Your score trend will appear here after your first quiz.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>Topic performance</h2>
+          <p>Average score per topic, weakest first.</p>
+        </div>
+      </div>
+      {% if progress.topic_performance %}
+        <div class="performance-table">
+          <div class="performance-head">
+            <span>Topic</span><span>Attempts</span><span>Average</span><span>Best</span><span>Last attempt</span>
+          </div>
+          {% for item in progress.topic_performance %}
+            <div class="performance-row">
+              <div class="performance-topic">
+                <strong>{{ item.topic_name }}</strong>
+                <span>{{ item.subject_name }}</span>
+              </div>
+              <span>{{ item.attempts }}</span>
+              <div class="performance-score">
+                <div class="mini-bar"><span class="tone-{{ 'success' if item.average >= 70 else 'warning' if item.average >= 50 else 'danger' }}" style="width: {{ item.average }}%"></span></div>
+                <strong>{{ item.average }}%</strong>
+              </div>
+              <span>{{ item.best|round|int }}%</span>
+              <span class="tiny-muted">{{ item.last_label }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted-note mb-0">Topic-level performance appears after your first quiz attempt.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>Study plan completion</h2>
+          <p>Progress across every plan you have created.</p>
+        </div>
+        <a class="link-arrow" href="{{ url_for('study.planner') }}">Manage plans <i class="bi bi-arrow-right"></i></a>
+      </div>
+      {% if progress.plans %}
+        <div class="plan-progress-list">
+          {% for plan in progress.plans %}
+            <a class="plan-progress-row" href="{{ url_for('study.detail', plan_id=plan.id) }}">
+              <div>
+                <strong>{{ plan.subject }}</strong>
+                <span>Created {{ plan.created }} · {{ plan.total_days }} days</span>
+              </div>
+              <div class="plan-progress-bar">
+                <div class="progress-bar-line"><span style="width: {{ plan.percentage }}%"></span></div>
+                <small>{{ plan.completed_days }}/{{ plan.total_days }} days</small>
+              </div>
+              <span class="chip {{ 'chip-teal' if plan.complete else 'chip-muted' }}">{{ plan.percentage }}%</span>
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted-note mb-0">No study plans yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4" id="achievements">
+      <div class="panel-head">
+        <div>
+          <h2>Achievements</h2>
+          <p>Earned from real materials, quiz scores, plan days and flashcards.</p>
+        </div>
+        <span class="chip chip-teal">{{ summary.achievements.earned_count }}/{{ summary.achievements.total }} earned</span>
+      </div>
+      <div class="achievement-grid">
+        {% for achievement in summary.achievements["items"] %}
+          <article class="achievement-card {{ 'is-earned' if achievement.earned else '' }}">
+            <div class="achievement-icon tone-{{ achievement.tone }}">
+              <i class="bi {{ achievement.icon }}"></i>
+            </div>
+            <div class="achievement-copy">
+              <div class="achievement-title">
+                <strong>{{ achievement.label }}</strong>
+                {% if achievement.earned %}
+                  <span class="achievement-earned"><i class="bi bi-check-circle-fill"></i> Earned</span>
+                {% else %}
+                  <span class="tiny-muted">{{ achievement.current|round|int }}/{{ achievement.target }}</span>
+                {% endif %}
+              </div>
+              <p>{{ achievement.description }}</p>
+              <div class="progress-bar-line achievement-bar">
+                <span style="width: {{ achievement.progress }}%"></span>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <div class="col-xl-4">
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2>Answer accuracy</h2></div>
+      </div>
+      <div class="accuracy-block">
+        <div class="accuracy-donut" id="accuracyDonut" role="img" aria-label="Correct, wrong and unanswered answers">
+          <div class="accuracy-center">
+            <strong id="accuracyPercent">—</strong>
+            <span>accuracy</span>
+          </div>
+        </div>
+        <div class="accuracy-legend">
+          <div><span class="legend-dot correct"></span><strong id="accuracyCorrect">{{ progress.accuracy.correct }}</strong> Correct</div>
+          <div><span class="legend-dot wrong"></span><strong id="accuracyWrong">{{ progress.accuracy.wrong }}</strong> Incorrect</div>
+          <div><span class="legend-dot skipped"></span><strong id="accuracySkipped">{{ progress.accuracy.unanswered }}</strong> Unanswered</div>
+        </div>
+      </div>
+      <p class="tiny-muted mb-0 mt-3">
+        Accuracy counts every answer across all attempts. Unanswered questions are tracked separately.
+      </p>
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div><h2>Materials by subject</h2></div>
+      </div>
+      {% if progress.subject_distribution %}
+        <div class="distribution-list" id="distributionList">
+          {% set max_count = progress.subject_distribution|map(attribute='materials')|max %}
+          {% for item in progress.subject_distribution %}
+            <div class="distribution-row">
+              <div class="distribution-label">
+                <span>{{ item.subject }}</span>
+                <strong>{{ item.materials }}</strong>
+              </div>
+              <div class="progress-bar-line"><span style="width: {{ (item.materials / max_count * 100)|round if max_count else 0 }}%"></span></div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted-note mb-0">No materials generated yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div><h2>Recommended next</h2></div>
+      </div>
+      {% if progress.recommendations %}
+        <div class="next-stack">
+          {% for item in progress.recommendations[:3] %}
+            <a class="next-card" href="{{ url_for('learning.generate', subject=item.subject_id, topic=item.topic_id) }}">
+              <i class="bi {{ 'bi-exclamation-circle' if item.kind == 'weak' else 'bi-calendar-check' if item.kind == 'plan' else 'bi-compass' }}"></i>
+              <div>
+                <strong>{{ item.topic_name }}</strong>
+                <span>{{ item.reason }}</span>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted-note mb-0">No recommendations right now.</p>
+      {% endif %}
+      <a class="btn btn-outline w-100 mt-3" href="{{ url_for('learning.generate') }}">Generate something new</a>
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div><h2>Learning summary</h2></div>
+      </div>
+      <dl class="detail-list">
+        <div><dt>Materials</dt><dd>{{ summary.materials }}</dd></div>
+        <div><dt>Quiz attempts</dt><dd>{{ summary.quiz_attempts }}</dd></div>
+        <div><dt>Topics completed</dt><dd>{{ summary.completed_topics }}</dd></div>
+        <div><dt>Plan days done</dt><dd>{{ summary.plan_completed_days }}/{{ summary.plan_total_days }}</dd></div>
+        <div><dt>Profile complete</dt><dd>{{ summary.profile_completeness }}%</dd></div>
+      </dl>
+    </section>
+  </div>
+</div>
+
+<script id="progressData" type="application/json">{{ chart_data|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/progress.js') }}"></script>
+{% endblock %}

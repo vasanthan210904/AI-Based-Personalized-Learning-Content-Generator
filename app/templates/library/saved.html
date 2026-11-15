@@ -1,0 +1,128 @@
+{% extends "layouts/app.html" %}
+{% from "layouts/_macros.html" import empty_state, stat_card with context %}
+{% block title %}Saved library{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Personal library</span>
+    <h1>Saved materials &amp; private notes.</h1>
+    <p class="page-subtitle">
+      Your bookmarks, reminders and questions live here. Notes are private to your account and are
+      never shown on public share links.
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('learning.history') }}">
+      <i class="bi bi-clock-history"></i> All materials
+    </a>
+    <a class="btn btn-primary" href="{{ url_for('learning.generate') }}">
+      <i class="bi bi-stars"></i> Generate content
+    </a>
+  </div>
+</section>
+
+<section class="stats-grid stats-grid-4">
+  {{ stat_card('bi-bookmark-heart', 'Saved materials', bookmarks|length, 'Private to your account', 'indigo') }}
+  {{ stat_card('bi-journal-text', 'With notes', notes_count, 'Materials with a reminder', 'violet') }}
+  {{ stat_card('bi-card-heading', 'Flashcards', 'Open decks', 'Turn saved notes into recall practice', 'teal') }}
+  {{ stat_card('bi-shield-lock', 'Privacy', 'Private', 'Notes never appear on share links', 'amber') }}
+</section>
+
+<section class="panel mt-4">
+  <div class="panel-head saved-library-head">
+    <div>
+      <h2>Your saved materials</h2>
+      <p id="savedCountText">{{ bookmarks|length }} saved material{{ '' if bookmarks|length == 1 else 's' }}.</p>
+    </div>
+    {% if bookmarks %}
+      <div class="saved-filters">
+        <div class="filter-search">
+          <i class="bi bi-search"></i>
+          <input class="form-control" type="search" id="savedSearch"
+                 placeholder="Search title, note or subject…" aria-label="Search saved materials">
+        </div>
+        <select class="form-select filter-select" id="savedSort" aria-label="Sort saved materials">
+          <option value="recent">Recently saved</option>
+          <option value="oldest">Oldest saved</option>
+          <option value="title">Title A–Z</option>
+          <option value="subject">Subject A–Z</option>
+        </select>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if bookmarks %}
+    <div class="saved-grid" id="savedGrid">
+      {% for bookmark in bookmarks %}
+        {% set content = bookmark.content %}
+        <article class="saved-card" data-saved-card
+                 data-search="{{ (content.title ~ ' ' ~ (content.subject.subject_name if content.subject else '') ~ ' ' ~ (content.topic.topic_name if content.topic else '') ~ ' ' ~ (bookmark.note or ''))|lower }}"
+                 data-title="{{ content.title|lower }}"
+                 data-subject="{{ (content.subject.subject_name if content.subject else '')|lower }}"
+                 data-saved-at="{{ bookmark.updated_at.timestamp() }}">
+          <div class="saved-card-top">
+            <span class="chip chip-indigo">{{ content.subject.subject_name if content.subject else 'Learning' }}</span>
+            <span class="chip chip-muted">{{ content.content_type }}</span>
+          </div>
+          <h2><a href="{{ url_for('learning.view_content', content_id=content.id) }}">{{ content.title }}</a></h2>
+          <p class="saved-meta">
+            {{ content.topic.topic_name if content.topic else '' }} · {{ content.learning_level }}
+            · saved {{ bookmark.updated_at|time_ago }}
+          </p>
+
+          <div class="saved-note">
+            <label class="form-label" for="savedNote{{ bookmark.id }}">
+              <i class="bi bi-journal-bookmark"></i> Private note
+            </label>
+            <textarea class="form-control" id="savedNote{{ bookmark.id }}" rows="3" maxlength="2000"
+                      placeholder="Add a reminder, a question, or why you saved this…"
+                      data-saved-note="{{ content.id }}">{{ bookmark.note or '' }}</textarea>
+            <div class="saved-note-foot">
+              <span class="tiny-muted" data-note-status="{{ content.id }}">
+                {{ 'Note saved' if bookmark.note else 'No note yet' }}
+              </span>
+              <button class="btn btn-sm btn-soft" type="button" data-save-note="{{ content.id }}">
+                <i class="bi bi-check2"></i> Save note
+              </button>
+            </div>
+          </div>
+
+          <div class="saved-card-actions">
+            <a class="btn btn-sm btn-primary" href="{{ url_for('learning.view_content', content_id=content.id) }}">
+              <i class="bi bi-book"></i> Open
+            </a>
+            <button class="btn btn-sm btn-outline" type="button" data-create-flashcards="{{ content.id }}">
+              <i class="bi bi-card-heading"></i> Flashcards
+            </button>
+            <a class="icon-btn" href="{{ url_for('learning.download_pdf', content_id=content.id) }}"
+               title="Download PDF" aria-label="Download PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+            <a class="icon-btn" href="{{ url_for('learning.download_markdown', content_id=content.id) }}"
+               title="Download Markdown" aria-label="Download Markdown"><i class="bi bi-markdown"></i></a>
+            <button class="icon-btn danger ms-auto" type="button"
+                    title="Remove from saved" aria-label="Remove from saved"
+                    data-bookmark-toggle="{{ content.id }}" data-bookmark-saved="true"
+                    data-bookmark-reload="true">
+              <i class="bi bi-bookmark-fill"></i>
+            </button>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+    <div class="empty-state d-none" id="savedNoResults">
+      <div class="empty-icon"><i class="bi bi-search"></i></div>
+      <h3>No saved material matches</h3>
+      <p>Try a different search term or clear the filter.</p>
+      <button class="btn btn-outline" type="button" id="clearSavedSearch">Clear search</button>
+    </div>
+  {% else %}
+    {{ empty_state('bi-bookmark-heart', 'Nothing saved yet',
+        'Open any material and press Save to keep it here with a private note.',
+        url_for('learning.history'), 'Browse your materials') }}
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/saved.js') }}"></script>
+{% endblock %}

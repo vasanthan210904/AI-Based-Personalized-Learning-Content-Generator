@@ -1,0 +1,285 @@
+{% extends "layouts/app.html" %}
+{% block title %}Generate content{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Content studio</span>
+    <h1>Generate personalized content</h1>
+    <p class="page-subtitle">
+      Pick a topic and choose how you want to learn it. Every material is saved to your history.
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('learning.history') }}">
+      <i class="bi bi-clock-history"></i> My history
+    </a>
+  </div>
+</section>
+
+<form id="generatorForm" class="row g-4" data-form="generate-content" novalidate>
+  <div class="col-xl-8">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>What should we build?</h2>
+          <p>Choose the subject, topic and format.</p>
+        </div>
+        <span class="step-chip">Step 1 of 2</span>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="subjectSelect">Subject</label>
+          <div class="input-wrap">
+            <i class="bi bi-journal-bookmark field-icon" aria-hidden="true"></i>
+            <select class="form-select with-icon" id="subjectSelect" name="subject_id" required>
+              <option value="">Choose a subject</option>
+              {% for subject in subjects_data %}
+                <option value="{{ subject.id }}" {{ 'selected' if defaults.subject_id == subject.id else '' }}>
+                  {{ subject.name }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field-error d-none" data-client-error="subject_id"></div>
+        </div>
+        <div class="col-md-6">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <label class="form-label mb-0" for="topicSelect">Topic</label>
+            <div class="btn-group btn-group-sm" role="group">
+              <button type="button" class="btn btn-xs btn-outline-primary active" id="btnSelectTopicMode" style="font-size: 0.75rem; padding: 2px 8px;">
+                <i class="bi bi-list-ul"></i> Select
+              </button>
+              <button type="button" class="btn btn-xs btn-outline-secondary" id="btnCustomTopicMode" style="font-size: 0.75rem; padding: 2px 8px;">
+                <i class="bi bi-pencil"></i> Type Custom
+              </button>
+            </div>
+          </div>
+
+          <div id="topicSelectWrap">
+            <div class="input-wrap">
+              <i class="bi bi-tags field-icon" aria-hidden="true"></i>
+              <select class="form-select with-icon" id="topicSelect" name="topic_id" required {{ 'disabled' if not defaults.subject_id else '' }}>
+                <option value="">Choose a topic</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="topicCustomWrap" class="d-none">
+            <div class="input-wrap">
+              <i class="bi bi-pencil-square field-icon text-primary" aria-hidden="true"></i>
+              <input type="text" class="form-control with-icon" id="customTopicInput" name="custom_topic" placeholder="e.g. Distributed Systems, Python Generators, Docker Internals...">
+            </div>
+            <div class="form-hint small text-muted mt-1"><i class="bi bi-stars text-primary"></i> AI will generate complete 15-section personalized learning notes for this topic!</div>
+          </div>
+          <div class="field-error d-none" data-client-error="topic_id"></div>
+        </div>
+      </div>
+
+      <!-- Quick Topic Suggestion Chips -->
+      <div class="mt-3 p-3 bg-light rounded-3 border">
+        <div class="small fw-semibold text-secondary mb-2 d-flex align-items-center gap-1">
+          <i class="bi bi-lightning-charge-fill text-warning"></i>
+          <span>Quick-Pick Topic Suggestions (1-Click Fill):</span>
+        </div>
+        <div class="d-flex flex-wrap gap-2" id="quickTopicChips">
+          <button type="button" class="badge-chip btn btn-sm btn-white bg-white border text-start" data-subject="1" data-topic="Python Basics">🐍 Python Basics</button>
+          <button type="button" class="badge-chip btn btn-sm btn-white bg-white border text-start" data-subject="1" data-topic="Object-Oriented Programming">🧱 OOP Principles</button>
+          <button type="button" class="badge-chip btn btn-sm btn-white bg-white border text-start" data-subject="1" data-topic="Binary Search Trees">🌲 Binary Search Trees</button>
+          <button type="button" class="badge-chip btn btn-sm btn-white bg-white border text-start" data-subject="2" data-topic="Normalization">🗄️ SQL Normalization</button>
+          <button type="button" class="badge-chip btn btn-sm btn-white bg-white border text-start" data-subject="3" data-topic="Process Scheduling">⚡ OS Concurrency & Deadlocks</button>
+          <button type="button" class="badge-chip btn btn-sm btn-white bg-white border text-start" data-subject="4" data-topic="TCP/IP Protocol">🌐 Computer Networks & HTTP</button>
+          <button type="button" class="badge-chip btn btn-sm btn-white bg-white border text-start" data-subject="5" data-topic="Supervised Learning">🤖 Machine Learning & AI</button>
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <label class="form-label">Content type</label>
+        <div class="type-grid">
+          {% for type in content_types %}
+            <label class="type-card">
+              <input type="radio" name="content_type" value="{{ type }}"
+                     {{ 'checked' if defaults.content_type == type else '' }}>
+              <span class="type-icon"><i class="bi {{ content_type_info[type].icon }}"></i></span>
+              <strong>{{ type }}</strong>
+              <small>{{ content_type_info[type].description }}</small>
+            </label>
+          {% endfor %}
+        </div>
+        <div class="field-error d-none" data-client-error="content_type"></div>
+      </div>
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>How should it be taught?</h2>
+          <p>These defaults come from your saved learning preferences.</p>
+        </div>
+        <span class="step-chip">Step 2 of 2</span>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label" for="levelSelect">Learning level</label>
+          <select class="form-select" id="levelSelect" name="learning_level" required>
+            {% for level in learning_levels %}
+              <option value="{{ level }}" {{ 'selected' if defaults.learning_level == level else '' }}>
+                {{ level }} — {{ learning_level_info[level].description }}
+              </option>
+            {% endfor %}
+          </select>
+          <div class="form-hint">Changes vocabulary, depth and examples.</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="styleSelect">Explanation style</label>
+          <select class="form-select" id="styleSelect" name="explanation_style" required>
+            {% for style in learning_styles %}
+              <option value="{{ style }}" {{ 'selected' if defaults.explanation_style == style else '' }}>{{ style }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-hint">Shapes tone, structure and examples.</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label" for="languageSelect">Language</label>
+          <select class="form-select" id="languageSelect" name="language" required>
+            {% for language in languages %}
+              <option value="{{ language }}" {{ 'selected' if defaults.language == language else '' }}>{{ language }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-hint">Demo content is available in English only.</div>
+        </div>
+      </div>
+
+      <!-- Extra features: auto-flashcards toggle & pedagogical section counter -->
+      <div class="mt-4 p-3 bg-light rounded-3 border">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="form-check-label fw-semibold" for="createFlashcardsToggle">
+            <i class="bi bi-card-checklist text-primary me-1"></i>
+            Auto-Generate Flashcard Study Deck
+          </label>
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" id="createFlashcardsToggle" name="create_flashcards" value="1" checked>
+          </div>
+        </div>
+        <div class="d-flex justify-content-between align-items-center small text-muted">
+          <span>Automatically transforms core definitions, concepts, and FAQs into an interactive flashcard revision deck.</span>
+          <span class="badge bg-secondary text-white ms-2 text-nowrap"><i class="bi bi-book"></i> 15 Full Sections</span>
+        </div>
+      </div>
+
+      <div class="generate-bar">
+        <div class="generate-note">
+          <i class="bi bi-shield-lock"></i>
+          <span>Generation runs on the server. Your API key is never sent to the browser.</span>
+        </div>
+        <button class="btn btn-primary btn-lg" type="submit" id="generateButton">
+          <i class="bi bi-stars"></i>
+          <span>Generate learning material</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-xl-4">
+    <section class="panel sticky-panel">
+      <div class="panel-head">
+        <div><h2>Generation mode</h2></div>
+      </div>
+      {% if ai_status.state == 'live' %}
+        <div class="mode-panel mode-live">
+          <span class="mode-dot"></span>
+          <div>
+            <strong>Live AI connected</strong>
+            <p>{{ ai_status.provider_label }} · {{ ai_status.model }}</p>
+          </div>
+        </div>
+        <p class="tiny-muted mt-3">
+          Content is generated live. Always cross-check important facts against your course material.
+        </p>
+      {% elif ai_status.state == 'fallback' %}
+        <div class="mode-panel mode-demo">
+          <span class="mode-dot"></span>
+          <div>
+            <strong>Live AI temporarily unavailable</strong>
+            <p>{{ ai_status.provider_label }} did not respond. Demo fallback is active.</p>
+          </div>
+        </div>
+        <p class="tiny-muted mt-3">
+          Your generation will still complete with clearly labelled offline content.
+          Live AI retries automatically in about {{ ai_status.cooldown_remaining }} seconds.
+        </p>
+        <div class="demo-topic-list">
+          {% for topic in demo_topics %}
+            <span class="chip chip-amber">{{ topic }}</span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="mode-panel mode-demo">
+          <span class="mode-dot"></span>
+          <div>
+            <strong>Demo mode</strong>
+            <p>No AI key configured</p>
+          </div>
+        </div>
+        <p class="tiny-muted mt-3">
+          You will receive clearly labelled sample content from the offline demo library.
+          Curated packs exist for these topics:
+        </p>
+        <div class="demo-topic-list">
+          {% for topic in demo_topics %}
+            <span class="chip chip-amber">{{ topic }}</span>
+          {% endfor %}
+        </div>
+        <p class="tiny-muted mb-0">
+          All topics receive structured educational notes and study materials.
+          Live AI models (Groq, Gemini, NVIDIA, or OpenAI) can be connected in <code>.env</code> for custom generation.
+        </p>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div><h2>What you will get</h2></div>
+      </div>
+      <ol class="section-list">
+        <li><span>01</span> Introduction &amp; objectives</li>
+        <li><span>02</span> Basic concepts &amp; detailed explanation</li>
+        <li><span>03</span> Definitions &amp; key terms</li>
+        <li><span>04</span> Step-by-step walkthrough</li>
+        <li><span>05</span> Examples &amp; applications</li>
+        <li><span>06</span> Advantages &amp; disadvantages</li>
+        <li><span>07</span> Important points &amp; summary</li>
+        <li><span>08</span> Revision tips &amp; FAQs</li>
+      </ol>
+      <div class="ai-notice mt-3">
+        <div class="ai-notice-icon"><i class="bi bi-file-earmark-pdf"></i></div>
+        <div>Every material can be exported as a structured PDF or printed from the viewer.</div>
+      </div>
+    </section>
+  </div>
+</form>
+
+<div class="generating-overlay" id="generatingOverlay" hidden>
+  <div class="generating-card">
+    <div class="generating-orbit">
+      <span></span><span></span><span></span>
+      <i class="bi bi-stars"></i>
+    </div>
+    <h2>Building your material</h2>
+    <p id="generatingText">Structuring the explanation, examples and revision section…</p>
+    <div class="generating-steps">
+      <span class="done">Reading your preferences</span>
+      <span class="active">Writing the content</span>
+      <span>Validating the result</span>
+    </div>
+  </div>
+</div>
+
+<script id="subjectsData" type="application/json">{{ subjects_data|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/generator.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends "layouts/app.html" %}
+{% from "layouts/_macros.html" import mode_badge, empty_state with context %}
+{% block title %}Study planner{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Study planner</span>
+    <h1>Turn topics into a daily schedule.</h1>
+    <p class="page-subtitle">
+      Tell the planner how much time you have and when you want to finish. It builds a day-by-day plan with revision built in.
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('progress.index') }}">
+      <i class="bi bi-graph-up-arrow"></i> My progress
+    </a>
+  </div>
+</section>
+
+<div class="row g-4">
+  <div class="col-xl-8">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Plan the schedule</h2>
+          <p>Choose one subject and the topics you want to cover.</p>
+        </div>
+      </div>
+
+      <form id="studyPlanForm" data-form="generate-study-plan" novalidate>
+        <div class="row g-3">
+          <div class="col-md-7">
+            <label class="form-label" for="planSubject">Subject</label>
+            <div class="input-wrap">
+              <i class="bi bi-journal-bookmark field-icon" aria-hidden="true"></i>
+              <select class="form-select with-icon" id="planSubject" name="subject_id" required>
+                <option value="">Choose a subject</option>
+                {% for subject in subjects_data %}
+                  <option value="{{ subject.id }}" {{ 'selected' if defaults.subject_id == subject.id else '' }}>{{ subject.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label" for="planLevel">Learning level</label>
+            <select class="form-select" id="planLevel" name="learning_level" required>
+              {% for level in learning_levels %}
+                <option value="{{ level }}" {{ 'selected' if defaults.learning_level == level else '' }}>{{ level }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <div class="label-row">
+            <label class="form-label mb-0">Topics to include</label>
+            <button class="link-button" type="button" id="selectAllTopics">Select all</button>
+          </div>
+          <div class="topic-picker" id="topicPicker">
+            <p class="muted-note" id="topicPickerEmpty">Choose a subject to see its topics.</p>
+          </div>
+          <!-- Add Custom Topic to Plan -->
+          <div class="mt-2 p-2 bg-light rounded border d-flex gap-2 align-items-center">
+            <div class="input-wrap flex-grow-1">
+              <i class="bi bi-plus-circle field-icon text-primary" aria-hidden="true"></i>
+              <input type="text" class="form-control form-control-sm with-icon" id="addCustomTopicInput" placeholder="Add custom topic to schedule (e.g. Graph Algorithms)...">
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary text-nowrap" id="btnAddCustomTopic">
+              <i class="bi bi-plus-lg"></i> Add Topic
+            </button>
+          </div>
+          <div class="form-hint">Order matters: topics are scheduled in the order you select them. Up to 15 topics.</div>
+        </div>
+
+        <div class="row g-3 mt-1">
+          <div class="col-md-4">
+            <label class="form-label" for="hoursPerDay">Study hours per day</label>
+            <div class="input-wrap">
+              <i class="bi bi-clock field-icon" aria-hidden="true"></i>
+              <input class="form-control with-icon" type="number" id="hoursPerDay" name="hours_per_day"
+                     min="0.5" max="12" step="0.5" value="{{ defaults.hours_per_day }}" required>
+            </div>
+            <div class="form-hint">Between 0.5 and 12 hours.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="targetDate">Target completion date</label>
+            <div class="input-wrap">
+              <i class="bi bi-calendar3 field-icon" aria-hidden="true"></i>
+              <input class="form-control with-icon" type="date" id="targetDate" name="target_date"
+                     min="{{ defaults.min_date }}" max="{{ defaults.max_date }}"
+                     value="{{ defaults.target_date }}" required>
+            </div>
+            <div class="form-hint">Within the next 60 days.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Estimated schedule</label>
+            <div class="plan-estimate">
+              <strong id="estimateDays">—</strong>
+              <span>study days available</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="generate-bar mt-4">
+          <div class="generate-note">
+            <i class="bi bi-calendar2-check"></i>
+            <span>Each day includes objectives, activities, practice questions and revision time.</span>
+          </div>
+          <button class="btn btn-primary" type="submit" id="planGenerateButton">
+            <i class="bi bi-calendar2-week"></i>
+            <span>Build study plan</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>Your study plans</h2>
+          <p>{{ plans|length }} plan{{ '' if plans|length == 1 else 's' }} created.</p>
+        </div>
+      </div>
+
+      {% if plans %}
+        <div class="plan-list">
+          {% for plan in plans %}
+            <a class="plan-row" href="{{ url_for('study.detail', plan_id=plan.id) }}">
+              <div class="plan-row-icon"><i class="bi bi-calendar2-week"></i></div>
+              <div class="plan-row-main">
+                <strong>{{ plan.subject.subject_name if plan.subject else 'Study plan' }}</strong>
+                <span>
+                  {{ plan.total_days }} days · {{ plan.hours_per_day }} hrs/day ·
+                  Target {{ plan.target_date|nice_date }}
+                </span>
+              </div>
+              <div class="plan-row-progress">
+                <div class="progress-bar-line"><span style="width: {{ plan.completion_percentage }}%"></span></div>
+                <span class="tiny-muted">{{ plan.completed_days }}/{{ plan.total_days }} days</span>
+              </div>
+              {% if plan.is_complete %}
+                <span class="chip chip-teal">Complete</span>
+              {% else %}
+                <span class="chip chip-muted">{{ plan.completion_percentage }}%</span>
+              {% endif %}
+              <i class="bi bi-chevron-right"></i>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted-note mb-0">No plans yet. Build your first schedule above.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-xl-4">
+    <section class="panel sticky-panel">
+      <div class="panel-head">
+        <div><h2>How the plan is built</h2></div>
+      </div>
+      <ol class="how-list">
+        <li>
+          <span class="how-icon"><i class="bi bi-1-circle"></i></span>
+          <div><strong>Topics are distributed</strong><span>Each topic gets its own study day, then repeats as revision days.</span></div>
+        </li>
+        <li>
+          <span class="how-icon"><i class="bi bi-2-circle"></i></span>
+          <div><strong>Daily objectives</strong><span>Every day has measurable objectives, activities and practice questions.</span></div>
+        </li>
+        <li>
+          <span class="how-icon"><i class="bi bi-3-circle"></i></span>
+          <div><strong>Revision built in</strong><span>Around 20% of each session is reserved for active recall and review.</span></div>
+        </li>
+        <li>
+          <span class="how-icon"><i class="bi bi-4-circle"></i></span>
+          <div><strong>Track completion</strong><span>Check off each day and watch the plan progress update.</span></div>
+        </li>
+      </ol>
+
+      {% if ai_status.state == 'live' %}
+        <div class="ai-notice mt-3">
+          <div class="ai-notice-icon"><i class="bi bi-stars"></i></div>
+          <div><strong>Live AI.</strong> Objectives and practice questions are generated live, then scheduled by the server.</div>
+        </div>
+      {% elif ai_status.state == 'fallback' %}
+        <div class="ai-notice mt-3">
+          <div class="ai-notice-icon"><i class="bi bi-exclamation-triangle"></i></div>
+          <div><strong>Live AI temporarily unavailable.</strong> Objectives and activities use the labelled offline library. The schedule itself is always real and stored.</div>
+        </div>
+      {% else %}
+        <div class="ai-notice mt-3">
+          <div class="ai-notice-icon"><i class="bi bi-info-circle"></i></div>
+          <div><strong>Demo mode.</strong> Objectives and activities come from the offline demo library. The schedule itself is always real and stored.</div>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div><h2>Planning tips</h2></div>
+      </div>
+      <ul class="info-list compact">
+        <li><i class="bi bi-clock-history"></i><div><span>Short daily sessions beat one long cram day.</span></div></li>
+        <li><i class="bi bi-arrow-repeat"></i><div><span>Leave at least one revision day before your target date.</span></div></li>
+        <li><i class="bi bi-patch-question"></i><div><span>Generate a quiz at the end of each topic day.</span></div></li>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<div class="generating-overlay" id="planGeneratingOverlay" hidden>
+  <div class="generating-card">
+    <div class="generating-orbit"><span></span><span></span><span></span><i class="bi bi-calendar2-week"></i></div>
+    <h2>Building your study plan</h2>
+    <p>Distributing topics, writing objectives and reserving revision time…</p>
+  </div>
+</div>
+
+<script id="subjectsData" type="application/json">{{ subjects_data|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/study_plan.js') }}"></script>
+{% endblock %}

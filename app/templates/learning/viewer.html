@@ -1,0 +1,395 @@
+{% extends "layouts/app.html" %}
+{% from "layouts/_macros.html" import mode_badge, ai_notice with context %}
+{% block title %}{{ data.title or content.title }}{% endblock %}
+
+{% block content %}
+<section class="viewer-head">
+  <div class="viewer-head-top">
+    <a class="back-link" href="{{ url_for('learning.history') }}">
+      <i class="bi bi-arrow-left"></i> Back to history
+    </a>
+    <div class="viewer-actions">
+      <button class="btn btn-sm btn-outline" type="button" onclick="window.print()">
+        <i class="bi bi-printer"></i> Print
+      </button>
+      <a class="btn btn-sm btn-outline" href="{{ url_for('learning.download_pdf', content_id=content.id) }}">
+        <i class="bi bi-file-earmark-pdf"></i> PDF
+      </a>
+      <a class="btn btn-sm btn-outline" href="{{ url_for('learning.download_markdown', content_id=content.id) }}">
+        <i class="bi bi-markdown"></i> Markdown
+      </a>
+      <button class="btn btn-sm btn-outline" type="button" data-create-flashcards="{{ content.id }}" data-create-flashcards-redirect="true">
+        <i class="bi bi-card-heading"></i> Flashcards
+      </button>
+      <a class="btn btn-sm btn-outline" href="#sharePanel">
+        <i class="bi bi-share"></i> Share
+      </a>
+      <a class="btn btn-sm btn-soft" href="{{ url_for('quiz.generate_page', subject=content.subject_id, topic=content.topic_id) }}">
+        <i class="bi bi-patch-question"></i> Quiz
+      </a>
+      <a class="btn btn-sm btn-primary" href="{{ url_for('learning.generate', subject=content.subject_id, topic=content.topic_id, level=content.learning_level, type=content.content_type) }}">
+        <i class="bi bi-arrow-repeat"></i> Generate again
+      </a>
+    </div>
+  </div>
+
+  <div class="viewer-title-block">
+    <div class="viewer-badges">
+      <span class="chip chip-indigo">{{ content.subject.subject_name if content.subject else 'Learning' }}</span>
+      <span class="chip chip-muted">{{ content.topic.topic_name if content.topic else '' }}</span>
+      <span class="chip chip-muted">{{ content.content_type }}</span>
+      <span class="chip chip-muted">{{ content.learning_level }}</span>
+      {{ mode_badge(content.ai_mode) }}
+    </div>
+    <h1>{{ data.title or content.title }}</h1>
+    <p class="viewer-meta">
+      Generated {{ content.created_at|nice_date('%d %B %Y, %H:%M') }} · {{ content.language }} ·
+      Style: {{ content.explanation_style }}
+    </p>
+  </div>
+</section>
+
+{{ ai_notice(content.ai_mode, content.ai_note) }}
+
+<div class="row g-4 mt-1">
+  <div class="col-xl-9">
+    <article class="reading-card" id="readingCard">
+      {% if data.introduction %}
+        <section class="reading-section" id="introduction">
+          <span class="section-number">01</span>
+          <h2>Introduction</h2>
+          <div class="prose">{{ data.introduction }}</div>
+        </section>
+      {% endif %}
+
+      {% if data.learning_objectives %}
+        <section class="reading-section" id="objectives">
+          <span class="section-number">02</span>
+          <h2>Learning Objectives</h2>
+          <ul class="objective-list">
+            {% for item in data.learning_objectives %}
+              <li><i class="bi bi-check2-circle"></i><span>{{ item }}</span></li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+
+      {% if data.basic_concepts %}
+        <section class="reading-section" id="concepts">
+          <span class="section-number">03</span>
+          <h2>Basic Concepts</h2>
+          <div class="concept-grid">
+            {% for concept in data.basic_concepts %}
+              <div class="concept-card">
+                <h3>{{ concept.heading }}</h3>
+                <div class="prose">{{ concept.explanation }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if data.detailed_explanation %}
+        <section class="reading-section" id="explanation">
+          <span class="section-number">04</span>
+          <h2>Detailed Explanation</h2>
+          <div class="prose prose-large">
+            {% for paragraph in data.detailed_explanation.split('\n\n') %}
+              {% if paragraph.strip() %}<p>{{ paragraph.strip() }}</p>{% endif %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if data.important_definitions %}
+        <section class="reading-section" id="definitions">
+          <span class="section-number">05</span>
+          <h2>Important Definitions</h2>
+          <div class="definition-table">
+            {% for item in data.important_definitions %}
+              <div class="definition-row">
+                <div class="definition-term">{{ item.term }}</div>
+                <div class="definition-body">{{ item.definition }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if data.key_terms %}
+        <section class="reading-section" id="key-terms">
+          <span class="section-number">06</span>
+          <h2>Key Terms</h2>
+          <div class="term-cloud">
+            {% for term in data.key_terms %}<span class="term-chip">{{ term }}</span>{% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if data.step_by_step %}
+        <section class="reading-section" id="steps">
+          <span class="section-number">07</span>
+          <h2>Step-by-Step Explanation</h2>
+          <ol class="numbered-steps">
+            {% for step in data.step_by_step %}
+              <li><span class="step-index">{{ '%02d'|format(loop.index) }}</span><div class="prose">{{ step }}</div></li>
+            {% endfor %}
+          </ol>
+        </section>
+      {% endif %}
+
+      {% if data.real_world_examples %}
+        <section class="reading-section" id="examples">
+          <span class="section-number">08</span>
+          <h2>Real-World Examples</h2>
+          <div class="example-stack">
+            {% for example in data.real_world_examples %}
+              <div class="example-card">
+                <span class="example-label"><i class="bi bi-lightbulb"></i> Example {{ loop.index }}</span>
+                <pre class="example-text">{{ example }}</pre>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if data.practical_applications %}
+        <section class="reading-section" id="applications">
+          <span class="section-number">09</span>
+          <h2>Practical Applications</h2>
+          <ul class="check-list">
+            {% for item in data.practical_applications %}
+              <li><i class="bi bi-arrow-right-short"></i><span>{{ item }}</span></li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+
+      {% if data.advantages or data.disadvantages %}
+        <section class="reading-section" id="pros-cons">
+          <span class="section-number">10</span>
+          <h2>Advantages &amp; Disadvantages</h2>
+          <div class="pros-cons-grid">
+            <div class="pros-card">
+              <h3><i class="bi bi-hand-thumbs-up"></i> Advantages</h3>
+              {% if data.advantages %}
+                <ul>{% for item in data.advantages %}<li>{{ item }}</li>{% endfor %}</ul>
+              {% else %}
+                <p class="muted-note">Not applicable for this topic.</p>
+              {% endif %}
+            </div>
+            <div class="cons-card">
+              <h3><i class="bi bi-hand-thumbs-down"></i> Disadvantages</h3>
+              {% if data.disadvantages %}
+                <ul>{% for item in data.disadvantages %}<li>{{ item }}</li>{% endfor %}</ul>
+              {% else %}
+                <p class="muted-note">Not applicable for this topic.</p>
+              {% endif %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
+      {% if data.important_points %}
+        <section class="reading-section" id="important-points">
+          <span class="section-number">11</span>
+          <h2>Important Points</h2>
+          <ul class="important-list">
+            {% for item in data.important_points %}
+              <li><span class="point-marker"></span><span>{{ item }}</span></li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+
+      {% if data.summary %}
+        <section class="reading-section" id="summary">
+          <span class="section-number">12</span>
+          <h2>Summary</h2>
+          <div class="summary-box">
+            <i class="bi bi-bookmark-check"></i>
+            <div class="prose">{{ data.summary }}</div>
+          </div>
+        </section>
+      {% endif %}
+
+      {% if data.revision_tips %}
+        <section class="reading-section" id="revision">
+          <span class="section-number">13</span>
+          <h2>Revision Tips</h2>
+          <div class="tip-grid">
+            {% for tip in data.revision_tips %}
+              <div class="tip-card"><i class="bi bi-lightning-charge"></i><span>{{ tip }}</span></div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if data.faqs %}
+        <section class="reading-section" id="faqs">
+          <span class="section-number">14</span>
+          <h2>Frequently Asked Questions</h2>
+          <div class="accordion lf-accordion" id="faqAccordion">
+            {% for faq in data.faqs %}
+              <div class="accordion-item">
+                <h3 class="accordion-header">
+                  <button class="accordion-button {{ 'collapsed' if not loop.first }}" type="button"
+                          data-bs-toggle="collapse" data-bs-target="#faq{{ loop.index }}"
+                          aria-expanded="{{ 'true' if loop.first else 'false' }}">
+                    <span class="faq-index">Q{{ loop.index }}</span> {{ faq.question }}
+                  </button>
+                </h3>
+                <div id="faq{{ loop.index }}" class="accordion-collapse collapse {{ 'show' if loop.first }}"
+                     data-bs-parent="#faqAccordion">
+                  <div class="accordion-body">{{ faq.answer }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="reading-section reading-end" id="next-steps">
+        <span class="section-number">15</span>
+        <h2>Keep going</h2>
+        <div class="next-actions">
+          <a class="next-card" href="{{ url_for('quiz.generate_page', subject=content.subject_id, topic=content.topic_id) }}">
+            <i class="bi bi-patch-question"></i>
+            <div><strong>Test your understanding</strong><span>Generate a quiz on this exact topic.</span></div>
+          </a>
+          <a class="next-card" href="{{ url_for('study.planner', subject=content.subject_id) }}">
+            <i class="bi bi-calendar2-week"></i>
+            <div><strong>Schedule it</strong><span>Add this subject to a study plan.</span></div>
+          </a>
+          <a class="next-card" href="{{ url_for('learning.history') }}">
+            <i class="bi bi-clock-history"></i>
+            <div><strong>Browse history</strong><span>Reopen any material you generated.</span></div>
+          </a>
+        </div>
+      </section>
+    </article>
+  </div>
+
+  <div class="col-xl-3">
+    <aside class="viewer-aside">
+      <section class="panel sticky-panel">
+        <div class="panel-head">
+          <div><h2>On this page</h2></div>
+        </div>
+        <nav class="toc-list" aria-label="Document sections">
+          {% set toc = [
+            ('introduction', 'Introduction', data.introduction),
+            ('objectives', 'Learning objectives', data.learning_objectives),
+            ('concepts', 'Basic concepts', data.basic_concepts),
+            ('explanation', 'Detailed explanation', data.detailed_explanation),
+            ('definitions', 'Definitions', data.important_definitions),
+            ('key-terms', 'Key terms', data.key_terms),
+            ('steps', 'Step by step', data.step_by_step),
+            ('examples', 'Examples', data.real_world_examples),
+            ('applications', 'Applications', data.practical_applications),
+            ('pros-cons', 'Advantages & disadvantages', data.advantages or data.disadvantages),
+            ('important-points', 'Important points', data.important_points),
+            ('summary', 'Summary', data.summary),
+            ('revision', 'Revision tips', data.revision_tips),
+            ('faqs', 'FAQs', data.faqs),
+          ] %}
+          {% for anchor, label, present in toc %}
+            {% if present %}
+              <a href="#{{ anchor }}" data-toc-link="{{ anchor }}">{{ label }}</a>
+            {% endif %}
+          {% endfor %}
+        </nav>
+      </section>
+
+      <section class="panel mt-4 saved-panel">
+        <div class="panel-head">
+          <div><h2>Saved &amp; notes</h2></div>
+        </div>
+        <button class="btn btn-sm btn-outline w-100 bookmark-btn {{ 'is-saved' if bookmark else '' }}" type="button"
+                data-bookmark-toggle="{{ content.id }}"
+                data-bookmark-saved="{{ 'true' if bookmark else 'false' }}"
+                aria-pressed="{{ 'true' if bookmark else 'false' }}">
+          <i class="bi {{ 'bi-bookmark-fill' if bookmark else 'bi-bookmark' }}"></i>
+          <span data-bookmark-label>{{ 'Saved' if bookmark else 'Save' }}</span>
+        </button>
+        <label class="form-label mt-3" for="bookmarkNote">Private note</label>
+        <textarea class="form-control" id="bookmarkNote" rows="4" maxlength="2000"
+                  placeholder="Add a reminder, a question, or the page to revisit…">{{ bookmark.note if bookmark and bookmark.note else '' }}</textarea>
+        <button class="btn btn-sm btn-soft w-100 mt-2" type="button" id="saveBookmarkNote"
+                data-save-note="{{ content.id }}">
+          <i class="bi bi-journal-check"></i> Save note
+        </button>
+        <p class="tiny-muted mt-2 mb-0">Notes stay private to your account. Saving a note also saves the material.</p>
+        <a class="btn btn-sm btn-ghost w-100 mt-1" href="{{ url_for('library.saved') }}">
+          Open saved library <i class="bi bi-arrow-right"></i>
+        </a>
+      </section>
+
+      <section class="panel mt-4" id="sharePanel"
+               data-share-content="{{ content.id }}"
+               data-share-active="{{ 'true' if share else 'false' }}"
+               data-share-url="{{ url_for('library.shared_view', token=share.token) if share else '' }}"
+               data-share-views="{{ share.views if share else 0 }}">
+        <div class="panel-head">
+          <div><h2>Share</h2></div>
+        </div>
+        <p class="tiny-muted" id="shareInactiveText">
+          Create a read-only link. Anyone with the link can read this material, but cannot edit,
+          delete or see your account.
+        </p>
+        <div id="shareActiveBox" class="{{ '' if share else 'd-none' }}">
+          <label class="form-label" for="shareUrl">Read-only link</label>
+          <div class="share-input-row">
+            <input class="form-control" id="shareUrl" type="text" readonly value="{{ url_for('library.shared_view', token=share.token, _external=True) if share else '' }}">
+            <button class="icon-btn" type="button" id="copyShareUrl" title="Copy link" aria-label="Copy share link"><i class="bi bi-clipboard"></i></button>
+          </div>
+          <p class="tiny-muted mt-2 mb-2"><span id="shareViews">{{ share.views if share else 0 }}</span> view{{ '' if share and share.views == 1 else 's' }}</p>
+          <a class="btn btn-sm btn-outline w-100" id="openShareUrl" href="{{ url_for('library.shared_view', token=share.token) if share else '#' }}" target="_blank" rel="noopener">
+            <i class="bi bi-box-arrow-up-right"></i> Open public page
+          </a>
+          <button class="btn btn-sm btn-danger-soft w-100 mt-2" type="button" id="revokeShare">
+            <i class="bi bi-link-45deg"></i> Revoke link
+          </button>
+        </div>
+        <button class="btn btn-sm btn-primary w-100 mt-2 {{ 'd-none' if share else '' }}" type="button" id="createShare">
+          <i class="bi bi-share"></i> Create share link
+        </button>
+      </section>
+
+      <section class="panel mt-4">
+        <div class="panel-head">
+          <div><h2>Material details</h2></div>
+        </div>
+        <dl class="detail-list">
+          <div><dt>Subject</dt><dd>{{ content.subject.subject_name if content.subject else '-' }}</dd></div>
+          <div><dt>Topic</dt><dd>{{ content.topic.topic_name if content.topic else '-' }}</dd></div>
+          <div><dt>Level</dt><dd>{{ content.learning_level }}</dd></div>
+          <div><dt>Format</dt><dd>{{ content.content_type }}</dd></div>
+          <div><dt>Style</dt><dd>{{ content.explanation_style }}</dd></div>
+          <div><dt>Language</dt><dd>{{ content.language }}</dd></div>
+          <div><dt>Created</dt><dd>{{ content.created_at|nice_date }}</dd></div>
+          <div><dt>Mode</dt><dd>{{ content.mode_info.label }}</dd></div>
+        </dl>
+      </section>
+
+      <section class="panel mt-4 danger-panel">
+        <div class="panel-head">
+          <div><h2>Danger zone</h2></div>
+        </div>
+        <p class="tiny-muted">Deleting this material also removes it from your history permanently.</p>
+        <button class="btn btn-sm btn-danger-soft w-100" type="button"
+                data-delete-content="{{ content.id }}"
+                data-delete-title="{{ content.title }}">
+          <i class="bi bi-trash3"></i> Delete this material
+        </button>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script id="viewerData" type="application/json">{{ {"contentId": content.id} | tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/viewer.js') }}"></script>
+{% endblock %}
