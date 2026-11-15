@@ -1,0 +1,87 @@
+<header class="app-topbar">
+  <div class="topbar-left">
+    <button class="icon-btn d-lg-none" type="button" data-sidebar-toggle aria-label="Open navigation">
+      <i class="bi bi-list"></i>
+    </button>
+    <div class="topbar-context">
+      <span class="topbar-eyebrow">{{ 'Administration console' if current_user.is_admin else 'Personalized learning workspace' }}</span>
+      <span class="topbar-title">{{ 'Platform overview' if current_user.is_admin else 'Welcome back, ' ~ current_user.first_name }}</span>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <button class="icon-btn theme-toggle" type="button" data-theme-toggle aria-label="Switch to dark theme" title="Switch theme">
+      <i class="bi bi-moon-stars"></i>
+    </button>
+
+    <div class="dropdown">
+      <button class="ai-pill {{ 'live' if ai_status.state == 'live' else 'demo' }} border-0 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="aiModelSelectorBtn" title="{{ ai_status.label }}">
+        <span class="dot"></span>
+        <span id="activeModelLabel">{{ 'Live AI · ' ~ (ai_status.provider|title) if ai_status.state == 'live' else 'Demo mode' }}</span>
+        <i class="bi bi-chevron-down ms-1" style="font-size: 0.75rem;"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end lf-dropdown shadow p-2" style="min-width: 290px;" id="aiModelSelectorMenu">
+        <li class="dropdown-header fw-bold text-dark px-3 py-1"><i class="bi bi-cpu text-primary me-1"></i> AI Model Engine</li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 py-2 model-switch-item" href="#" data-engine="groq:qwen/qwen3.8-27b">
+            <span class="badge bg-success text-white">⚡ Ultra Fast</span>
+            <div><strong>Groq · Qwen 2.5</strong><small class="d-block text-muted">~1s speed, 100% Free</small></div>
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 py-2 model-switch-item" href="#" data-engine="groq:openai/gpt-oss-120b">
+            <span class="badge bg-primary text-white">🧠 Reasoning</span>
+            <div><strong>Groq · DeepSeek 120B</strong><small class="d-block text-muted">Deep reasoning, Free tier</small></div>
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 py-2 model-switch-item" href="#" data-engine="gemini:gemma-4-26b-a4b-it">
+            <span class="badge bg-info text-white">✨ Google</span>
+            <div><strong>Gemini · Gemma 4 IT</strong><small class="d-block text-muted">Google AI Studio, Free</small></div>
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 py-2 model-switch-item" href="#" data-engine="openrouter:nvidia/nemotron-3.5-lightning:free">
+            <span class="badge bg-warning text-dark">🌐 OpenRouter</span>
+            <div><strong>Nemotron 3.5 Free</strong><small class="d-block text-muted">Open source pool</small></div>
+          </a>
+        </li>
+        <li><hr class="dropdown-divider my-1"></li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 py-2 model-switch-item" href="#" data-engine="offline:curriculum">
+            <span class="badge bg-secondary text-white">📚 Offline</span>
+            <div><strong>Academic Offline Bank</strong><small class="d-block text-muted">Zero keys needed, 100% offline</small></div>
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="dropdown">
+      <button class="user-chip" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="avatar">{{ current_user.initials }}</span>
+        <span class="user-chip-text">
+          <strong>{{ current_user.first_name }}</strong>
+          <small>{{ 'Admin' if current_user.is_admin else 'Student' }}</small>
+        </span>
+        <i class="bi bi-chevron-down"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end lf-dropdown">
+        {% if current_user.is_admin %}
+          <li><a class="dropdown-item" href="{{ url_for('admin.dashboard') }}"><i class="bi bi-speedometer2"></i> Admin dashboard</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('admin.subjects') }}"><i class="bi bi-journal-bookmark"></i> Manage subjects</a></li>
+        {% else %}
+          <li><a class="dropdown-item" href="{{ url_for('student.profile') }}"><i class="bi bi-person"></i> My profile</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('student.preferences') }}"><i class="bi bi-sliders2"></i> Learning preferences</a></li>
+          <li><a class="dropdown-item" href="{{ url_for('progress.index') }}"><i class="bi bi-graph-up-arrow"></i> My progress</a></li>
+        {% endif %}
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form method="post" action="{{ url_for('auth.logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right"></i> Sign out</button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </div>
+</header>

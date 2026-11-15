@@ -1,0 +1,42 @@
+{% extends "layouts/auth.html" %}
+{% from "layouts/_macros.html" import field_input, field_select with context %}
+{% block title %}Create your account{% endblock %}
+
+{% block auth_content %}
+<div class="auth-form-head">
+  <span class="eyebrow">Get started</span>
+  <h2>Create your learning account</h2>
+  <p>Two minutes now, a personal study workspace for the rest of the semester.</p>
+</div>
+
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+
+  <div class="row g-3">
+    <div class="col-12">{{ field_input(form.name, icon="bi-person") }}</div>
+    <div class="col-12">{{ field_input(form.email, icon="bi-envelope") }}</div>
+    <div class="col-md-6">{{ field_input(form.password, icon="bi-lock") }}</div>
+    <div class="col-md-6">{{ field_input(form.confirm_password, icon="bi-shield-lock") }}</div>
+    <div class="col-md-7">{{ field_input(form.course, icon="bi-mortarboard") }}</div>
+    <div class="col-md-5">{{ field_select(form.year, icon="bi-calendar3") }}</div>
+    <div class="col-12">{{ field_input(form.department, icon="bi-building") }}</div>
+  </div>
+
+  <div class="password-hint mb-4">
+    <i class="bi bi-info-circle"></i>
+    Use at least 8 characters with a letter and a number. Passwords are hashed before storage.
+  </div>
+
+  {{ form.submit(class="btn btn-primary btn-lg w-100") }}
+</form>
+
+<div class="auth-divider"><span>Already have an account?</span></div>
+<a class="btn btn-outline w-100" href="{{ url_for('auth.login') }}">
+  <i class="bi bi-box-arrow-in-right"></i> Sign in instead
+</a>
+
+<p class="auth-fineprint">
+  By creating an account you agree to use the generated material as a study aid and to
+  verify important facts against your course resources.
+</p>
+{% endblock %}

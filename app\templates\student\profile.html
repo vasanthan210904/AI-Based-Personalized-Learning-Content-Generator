@@ -1,0 +1,101 @@
+{% extends "layouts/app.html" %}
+{% from "layouts/_macros.html" import field_input, field_select with context %}
+{% block title %}My profile{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Account</span>
+    <h1>My profile</h1>
+    <p class="page-subtitle">Keep your academic details up to date. This information personalizes your materials.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('student.preferences') }}">
+      <i class="bi bi-sliders2"></i> Learning preferences
+    </a>
+  </div>
+</section>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Academic details</h2>
+          <p>Your name appears on exported PDFs.</p>
+        </div>
+      </div>
+      <form method="post" novalidate>
+        {{ form.hidden_tag() }}
+        <div class="row g-3">
+          <div class="col-md-6">{{ field_input(form.name, icon="bi-person") }}</div>
+          <div class="col-md-6">{{ field_input(form.course, icon="bi-mortarboard") }}</div>
+          <div class="col-md-8">{{ field_input(form.department, icon="bi-building") }}</div>
+          <div class="col-md-4">{{ field_select(form.year, icon="bi-calendar3") }}</div>
+        </div>
+        <div class="form-actions">
+          {{ form.submit(class="btn btn-primary") }}
+          <a class="btn btn-light" href="{{ url_for('student.dashboard') }}">Cancel</a>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>Account information</h2>
+          <p>Managed securely on the server.</p>
+        </div>
+      </div>
+      <dl class="detail-grid">
+        <div><dt>Email address</dt><dd>{{ current_user.email }}</dd></div>
+        <div><dt>Account role</dt><dd><span class="chip chip-indigo">{{ current_user.role|title }}</span></dd></div>
+        <div><dt>Member since</dt><dd>{{ current_user.created_at|nice_date }}</dd></div>
+        <div><dt>Last sign-in</dt><dd>{{ current_user.last_login_at|nice_date if current_user.last_login_at else 'This session' }}</dd></div>
+      </dl>
+      <div class="security-note">
+        <i class="bi bi-shield-check"></i>
+        <div>
+          <strong>Passwords are hashed</strong>
+          <span>LearnForge stores a Werkzeug password hash, never your plain password.</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-lg-4">
+    <section class="panel profile-summary">
+      <div class="profile-avatar">{{ current_user.initials }}</div>
+      <h2>{{ current_user.name }}</h2>
+      <p>{{ profile.course or 'Course not set' }}</p>
+      <span class="chip chip-indigo">{{ profile.year or 'Year not set' }}</span>
+
+      <div class="profile-facts">
+        <div><i class="bi bi-building"></i><span>{{ profile.department or 'Department not set' }}</span></div>
+        <div><i class="bi bi-speedometer"></i><span>{{ profile.learning_level }} level</span></div>
+        <div><i class="bi bi-chat-heart"></i><span>{{ profile.learning_style }}</span></div>
+        <div><i class="bi bi-translate"></i><span>{{ profile.preferred_language }}</span></div>
+      </div>
+
+      <div class="profile-stats">
+        <div><strong>{{ summary.materials }}</strong><span>Materials</span></div>
+        <div><strong>{{ summary.quiz_attempts }}</strong><span>Quiz attempts</span></div>
+        <div><strong>{{ summary.streak }}</strong><span>Day streak</span></div>
+      </div>
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div><h2>Profile completeness</h2></div>
+      </div>
+      <div class="progress-hero compact">
+        <div class="progress-ring small" style="--value: {{ summary.profile_completeness }}">
+          <span>{{ summary.profile_completeness }}<small>%</small></span>
+        </div>
+        <p class="mb-0">A complete profile helps the AI match depth, examples and language to your goals.</p>
+      </div>
+      <a class="btn btn-outline w-100 mt-3" href="{{ url_for('student.preferences') }}">Review preferences</a>
+    </section>
+  </div>
+</div>
+{% endblock %}

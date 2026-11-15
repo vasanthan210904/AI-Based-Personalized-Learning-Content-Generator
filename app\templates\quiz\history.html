@@ -1,0 +1,67 @@
+{% extends "layouts/app.html" %}
+{% from "layouts/_macros.html" import empty_state, pagination_nav, stat_card with context %}
+{% block title %}Quiz history{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Learning record</span>
+    <h1>Quiz history</h1>
+    <p class="page-subtitle">Every attempt is scored on the server and stored here with a full answer review.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('learning.history') }}">
+      <i class="bi bi-journal-text"></i> Content history
+    </a>
+    <a class="btn btn-primary" href="{{ url_for('quiz.generate_page') }}">
+      <i class="bi bi-patch-question"></i> New quiz
+    </a>
+  </div>
+</section>
+
+<section class="stats-grid stats-grid-4">
+  {{ stat_card('bi-patch-check', 'Total attempts', stats.total, 'All quizzes taken', 'indigo') }}
+  {{ stat_card('bi-graph-up', 'Average score', (stats.average|string ~ '%') if stats.total else '—', 'Across every attempt', 'violet') }}
+  {{ stat_card('bi-trophy', 'Best score', (stats.best|round|int|string ~ '%') if stats.total else '—', 'Personal best', 'amber') }}
+  {{ stat_card('bi-check2-circle', 'Correct answers', stats.correct, 'Cumulative total', 'teal') }}
+</section>
+
+<section class="panel mt-4">
+  <div class="panel-head">
+    <div>
+      <h2>All attempts</h2>
+      <p>{{ pagination.total }} attempt{{ '' if pagination.total == 1 else 's' }} recorded.</p>
+    </div>
+  </div>
+
+  {% if pagination.items %}
+    <div class="attempt-list">
+      {% for attempt in pagination.items %}
+        <a class="attempt-row" href="{{ url_for('quiz.results', attempt_id=attempt.id) }}">
+          <span class="attempt-score tone-{{ attempt.performance.tone }}">{{ attempt.percentage|round|int }}%</span>
+          <div class="attempt-main">
+            <strong>{{ attempt.quiz.topic.topic_name if attempt.quiz and attempt.quiz.topic else 'Quiz attempt' }}</strong>
+            <span>
+              {{ attempt.quiz.subject.subject_name if attempt.quiz and attempt.quiz.subject else '' }} ·
+              {{ attempt.quiz.difficulty if attempt.quiz else '' }} ·
+              {{ attempt.score }}/{{ attempt.total_questions }} correct
+            </span>
+          </div>
+          <div class="attempt-bars">
+            <div class="attempt-bar"><span class="correct" style="width: {{ (attempt.correct_count / attempt.total_questions * 100)|round if attempt.total_questions else 0 }}%"></span></div>
+            <span class="tiny-muted">{{ attempt.attempted_at|nice_date('%d %b %Y') }}</span>
+          </div>
+          <span class="attempt-performance tone-{{ attempt.performance.tone }}">{{ attempt.performance.label }}</span>
+          <i class="bi bi-chevron-right"></i>
+        </a>
+      {% endfor %}
+    </div>
+
+    {{ pagination_nav(pagination, 'quiz.history') }}
+  {% else %}
+    {{ empty_state('bi-patch-question', 'No quiz attempts yet',
+        'Generate a quiz to test your understanding and start building your performance record.',
+        url_for('quiz.generate_page'), 'Generate a quiz') }}
+  {% endif %}
+</section>
+{% endblock %}

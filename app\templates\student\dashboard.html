@@ -1,0 +1,272 @@
+{% extends "layouts/app.html" %}
+{% from "layouts/_macros.html" import stat_card, mode_badge, empty_state with context %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Your learning workspace</span>
+    <h1>Good to see you, {{ current_user.first_name }}.</h1>
+    <p class="page-subtitle">
+      {% if summary.has_activity %}
+        Here is what your real study activity looks like right now.
+      {% else %}
+        Your workspace is ready. Generate your first personalized material to get started.
+      {% endif %}
+    </p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-primary" href="{{ url_for('learning.generate') }}">
+      <i class="bi bi-stars"></i> Generate content
+    </a>
+    <a class="btn btn-outline" href="{{ url_for('quiz.generate_page') }}">
+      <i class="bi bi-patch-question"></i> Take a quiz
+    </a>
+  </div>
+</section>
+
+{% if summary.profile_completeness < 100 %}
+  <div class="setup-banner">
+    <div class="setup-icon"><i class="bi bi-sliders2"></i></div>
+    <div class="setup-copy">
+      <strong>Finish your learning profile</strong>
+      <span>
+        {{ summary.profile_completeness }}% complete. Add your goals and interested subjects so
+        every generation is tailored to you.
+      </span>
+      <div class="setup-progress"><span style="width: {{ summary.profile_completeness }}%"></span></div>
+    </div>
+    <a class="btn btn-sm btn-primary" href="{{ url_for('student.preferences') }}">Complete profile</a>
+  </div>
+{% endif %}
+
+<section class="stats-grid">
+  {{ stat_card('bi-journal-text', 'Learning materials', summary.materials, 'Saved in your history', 'indigo') }}
+  {{ stat_card('bi-patch-check', 'Quiz average', summary.avg_score ~ '%' if summary.quiz_attempts else '—', (summary.quiz_attempts ~ ' attempt' ~ ('' if summary.quiz_attempts == 1 else 's')) if summary.quiz_attempts else 'No quizzes yet', 'violet') }}
+  {{ stat_card('bi-graph-up-arrow', 'Learning progress', summary.learning_progress ~ '%', 'Coverage + quiz mastery', 'teal') }}
+  {{ stat_card('bi-fire', 'Study streak', summary.streak ~ (' day' if summary.streak == 1 else ' days'), 'Consecutive active days', 'amber') }}
+</section>
+
+<div class="row g-4 mt-1">
+  <div class="col-xl-8">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <h2>Continue where you left off</h2>
+          <p>Your most recent materials and quiz results, pulled from the database.</p>
+        </div>
+        <a class="link-arrow" href="{{ url_for('learning.history') }}">All history <i class="bi bi-arrow-right"></i></a>
+      </div>
+
+      {% if summary.recent_contents or summary.recent_attempts %}
+        <div class="row g-3">
+          {% for content in summary.recent_contents[:2] %}
+            <div class="col-md-6">
+              <a class="continue-card" href="{{ url_for('learning.view_content', content_id=content.id) }}">
+                <div class="continue-top">
+                  <span class="chip chip-indigo">{{ content.subject.subject_name if content.subject else 'Learning' }}</span>
+                  {{ mode_badge(content.ai_mode) }}
+                </div>
+                <h3>{{ content.title }}</h3>
+                <p>{{ content.content_type }} · {{ content.learning_level }} · {{ content.created_at|time_ago }}</p>
+                <span class="continue-cta">Open material <i class="bi bi-arrow-right"></i></span>
+              </a>
+            </div>
+          {% endfor %}
+          {% for attempt in summary.recent_attempts[:2] %}
+            <div class="col-md-6">
+              <a class="continue-card" href="{{ url_for('quiz.results', attempt_id=attempt.id) }}">
+                <div class="continue-top">
+                  <span class="chip chip-violet">{{ attempt.quiz.topic.topic_name if attempt.quiz and attempt.quiz.topic else 'Quiz' }}</span>
+                  <span class="score-pill tone-{{ attempt.performance.tone }}">{{ attempt.percentage|round|int }}%</span>
+                </div>
+                <h3>{{ attempt.quiz.topic.topic_name if attempt.quiz and attempt.quiz.topic else 'Quiz attempt' }}</h3>
+                <p>{{ attempt.score }}/{{ attempt.total_questions }} correct · {{ attempt.attempted_at|time_ago }}</p>
+                <span class="continue-cta">Review answers <i class="bi bi-arrow-right"></i></span>
+              </a>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        {{ empty_state('bi-journal-plus', 'Nothing generated yet',
+            'Your first personalized learning material is one click away.',
+            url_for('learning.generate'), 'Generate content') }}
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>Recommended next steps</h2>
+          <p>Based on your quiz performance, study plans and uncovered topics.</p>
+        </div>
+        <a class="link-arrow" href="{{ url_for('progress.index') }}">Full progress <i class="bi bi-arrow-right"></i></a>
+      </div>
+      {% if summary.recommendations %}
+        <div class="recommend-list">
+          {% for item in summary.recommendations %}
+            <div class="recommend-item">
+              <div class="recommend-icon"><i class="bi bi-lightbulb"></i></div>
+              <div class="recommend-copy">
+                <div class="recommend-title">
+                  <strong>{{ item.topic_name }}</strong>
+                  <span class="chip chip-muted">{{ item.subject_name }}</span>
+                  <span class="chip {{ 'chip-amber' if item.kind == 'weak' else 'chip-teal' if item.kind == 'plan' else 'chip-muted' }}">{{ item.badge }}</span>
+                </div>
+                <p>{{ item.reason }}</p>
+              </div>
+              <div class="recommend-actions">
+                <a class="btn btn-sm btn-outline" href="{{ url_for('learning.generate', subject=item.subject_id, topic=item.topic_id) }}">Notes</a>
+                <a class="btn btn-sm btn-soft" href="{{ url_for('quiz.generate_page', subject=item.subject_id, topic=item.topic_id) }}">Quiz</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted-note mb-0">Recommendations appear once you have some activity or topics available.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>Recent activity</h2>
+          <p>Every generation and quiz attempt is recorded.</p>
+        </div>
+      </div>
+      {% if activity %}
+        <ul class="activity-feed">
+          {% for event in activity %}
+            <li>
+              <span class="activity-icon {{ 'tone-indigo' if event.type == 'content' else 'tone-violet' }}">
+                <i class="bi {{ 'bi-journal-plus' if event.type == 'content' else 'bi-patch-check' }}"></i>
+              </span>
+              <div class="activity-copy">
+                <strong>{{ event.label }}</strong>
+                <span>{{ event.subject }}{% if event.subject and event.topic %} · {% endif %}{{ event.topic }}</span>
+              </div>
+              <span class="activity-time">{{ event.at|time_ago }}</span>
+              <a class="activity-link" href="{{ event.url }}" aria-label="Open"><i class="bi bi-arrow-right"></i></a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted-note mb-0">No activity yet — generate content or take a quiz to start your timeline.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-xl-4">
+    <section class="panel panel-accent">
+      <div class="panel-head">
+        <div>
+          <h2>Learning progress</h2>
+          <p>Calculated from coverage and quiz mastery.</p>
+        </div>
+      </div>
+      <div class="progress-hero">
+        <div class="progress-ring" style="--value: {{ summary.learning_progress }}">
+          <span>{{ summary.learning_progress }}<small>%</small></span>
+        </div>
+        <div class="progress-hero-meta">
+          <div><strong>{{ summary.coverage }}%</strong><span>Topic coverage</span></div>
+          <div><strong>{{ summary.mastery }}%</strong><span>Quiz mastery</span></div>
+        </div>
+      </div>
+      <div class="mini-stat-row">
+        <div><span>Topics studied</span><strong>{{ summary.topics_studied }}/{{ summary.total_topics_available }}</strong></div>
+        <div><span>Plan completion</span><strong>{{ summary.plan_completion }}%</strong></div>
+        <div><span>Quizzes taken</span><strong>{{ summary.quizzes_taken }}</strong></div>
+      </div>
+      <a class="btn btn-outline w-100 mt-3" href="{{ url_for('progress.index') }}">
+        <i class="bi bi-graph-up-arrow"></i> View progress details
+      </a>
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>Active study plan</h2>
+          <p>{{ 'Your current schedule' if summary.active_plan else 'No plan in progress' }}</p>
+        </div>
+      </div>
+      {% if summary.active_plan %}
+        {% set plan = summary.active_plan %}
+        <div class="plan-mini">
+          <div class="plan-mini-head">
+            <span class="chip chip-indigo">{{ plan.subject.subject_name if plan.subject else 'Plan' }}</span>
+            <span class="tiny-muted">{{ plan.completed_days }}/{{ plan.total_days }} days</span>
+          </div>
+          <div class="progress-bar-line"><span style="width: {{ plan.completion_percentage }}%"></span></div>
+          {% if summary.next_plan_day %}
+            <div class="next-day">
+              <span class="eyebrow">Next up · Day {{ summary.next_plan_day.index + 1 }}</span>
+              <strong>{{ summary.next_plan_day.topic }}</strong>
+              <p>{{ summary.next_plan_day.weekday }}, {{ summary.next_plan_day.date }}</p>
+            </div>
+          {% endif %}
+          <a class="btn btn-sm btn-primary w-100" href="{{ url_for('study.detail', plan_id=plan.id) }}">Open plan</a>
+        </div>
+      {% else %}
+        <div class="empty-inline">
+          <p>Turn your topics into a day-by-day schedule with revision built in.</p>
+          <a class="btn btn-sm btn-primary" href="{{ url_for('study.planner') }}">Create a study plan</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>Flashcards</h2>
+          <p>
+            {% if summary.flashcard_decks %}
+              {{ summary.flashcard_cards_known }}/{{ summary.flashcard_cards_total }} cards known
+            {% else %}
+              Active recall from your own notes
+            {% endif %}
+          </p>
+        </div>
+        <a class="link-arrow" href="{{ url_for('flashcards.index') }}">All decks <i class="bi bi-arrow-right"></i></a>
+      </div>
+      {% if summary.recent_decks %}
+        <div class="dashboard-deck-list">
+          {% for deck in summary.recent_decks %}
+            <a class="dashboard-deck-row" href="{{ url_for('flashcards.study', deck_id=deck.id) }}">
+              <span class="deck-icon"><i class="bi bi-card-heading"></i></span>
+              <div>
+                <strong>{{ deck.topic.topic_name if deck.topic else deck.title }}</strong>
+                <span>{{ deck.known_cards }}/{{ deck.total_cards }} known · {{ deck.mastery_percentage }}%</span>
+              </div>
+              <i class="bi bi-arrow-right"></i>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-inline">
+          <p>Turn a material into a deck and start active recall.</p>
+          <a class="btn btn-sm btn-soft" href="{{ url_for('learning.history') }}">Choose a material</a>
+        </div>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div>
+          <h2>Browse subjects</h2>
+          <p>{{ subjects|length }} subjects available</p>
+        </div>
+      </div>
+      <div class="subject-chip-list">
+        {% for subject in subjects %}
+          <a class="subject-chip" href="{{ url_for('learning.generate', subject=subject.id) }}">
+            <i class="bi bi-journal-bookmark"></i>
+            <span>{{ subject.subject_name }}</span>
+            <small>{{ subject.topics|length }} topics</small>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

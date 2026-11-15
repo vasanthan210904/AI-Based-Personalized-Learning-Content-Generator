@@ -1,0 +1,76 @@
+{% extends "layouts/app.html" %}
+{% from "layouts/_macros.html" import empty_state, pagination_nav with context %}
+{% block title %}Students{% endblock %}
+
+{% block content %}
+<section class="page-head">
+  <div>
+    <span class="eyebrow">Administration</span>
+    <h1>Students</h1>
+    <p class="page-subtitle">Every registered student account, with real usage counts.</p>
+  </div>
+  <div class="page-actions">
+    <a class="btn btn-outline" href="{{ url_for('admin.dashboard') }}"><i class="bi bi-speedometer2"></i> Overview</a>
+  </div>
+</section>
+
+<section class="panel">
+  <form class="filter-bar" method="get" action="{{ url_for('admin.users') }}">
+    <div class="filter-search">
+      <i class="bi bi-search"></i>
+      <input class="form-control" type="search" name="q" value="{{ q }}"
+             placeholder="Search by name or email…" aria-label="Search students">
+    </div>
+    <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> Search</button>
+    {% if q %}<a class="btn btn-light" href="{{ url_for('admin.users') }}">Clear</a>{% endif %}
+    <span class="filter-count">{{ pagination.total }} student{{ '' if pagination.total == 1 else 's' }}</span>
+  </form>
+
+  {% if pagination.items %}
+    <div class="table-responsive">
+      <table class="lf-table">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Course</th>
+            <th>Year</th>
+            <th>Materials</th>
+            <th>Quiz attempts</th>
+            <th>Joined</th>
+            <th>Last sign-in</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in pagination.items %}
+            <tr>
+              <td>
+                <div class="table-user">
+                  <span class="avatar avatar-sm">{{ student.initials }}</span>
+                  <div>
+                    <strong>{{ student.name }}</strong>
+                    <span>{{ student.email }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>{{ student.profile.course if student.profile and student.profile.course else '—' }}</td>
+              <td>{{ student.profile.year if student.profile and student.profile.year else '—' }}</td>
+              <td><span class="chip chip-indigo">{{ content_counts.get(student.id, 0) }}</span></td>
+              <td><span class="chip chip-violet">{{ attempt_counts.get(student.id, 0) }}</span></td>
+              <td class="tiny-muted">{{ student.created_at|nice_date }}</td>
+              <td class="tiny-muted">{{ student.last_login_at|nice_date if student.last_login_at else 'Never' }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {{ pagination_nav(pagination, 'admin.users', q=q) }}
+  {% else %}
+    {% if q %}
+      {{ empty_state('bi-search', 'No students found', 'Try a different name or email search.') }}
+    {% else %}
+      {{ empty_state('bi-people', 'No students yet', 'Students will appear here after they register.') }}
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

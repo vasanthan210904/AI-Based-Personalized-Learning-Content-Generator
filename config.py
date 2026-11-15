@@ -100,9 +100,10 @@ class Config:
     APP_NAME = "LearnForge"
     APP_TAGLINE = "AI-Powered Personalized Learning"
     PROJECT_TITLE = "AI-Based Personalized Learning Content Generator"
+    _DEFAULT_DB = "/tmp/app.db" if os.environ.get("VERCEL") == "1" else (INSTANCE_DIR / "app.db").as_posix()
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL",
-        f"sqlite:///{(INSTANCE_DIR / 'app.db').as_posix()}",
+        f"sqlite:///{_DEFAULT_DB}",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     AUTO_INIT_DB = True

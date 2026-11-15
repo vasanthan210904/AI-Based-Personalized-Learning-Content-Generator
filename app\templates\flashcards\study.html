@@ -1,0 +1,185 @@
+{% extends "layouts/app.html" %}
+{% block title %}{{ deck.title }}{% endblock %}
+
+{% block content %}
+<section class="page-head flashcard-study-head">
+  <div>
+    <a class="back-link" href="{{ url_for('flashcards.index') }}">
+      <i class="bi bi-arrow-left"></i> All flashcard decks
+    </a>
+    <span class="eyebrow mt-2">Flashcard study</span>
+    <h1>{{ deck.title }}</h1>
+    <p class="page-subtitle">
+      {{ deck.subject.subject_name if deck.subject else 'Learning' }}
+      {% if deck.topic %} · {{ deck.topic.topic_name }}{% endif %}
+      · {{ deck.total_cards }} cards · {{ deck.source == 'content' and 'From your material' or 'Curated topic deck' }}
+    </p>
+  </div>
+  <div class="page-actions">
+    <button class="btn btn-outline" type="button" id="shuffleDeck">
+      <i class="bi bi-shuffle"></i> Shuffle
+    </button>
+    <button class="btn btn-outline" type="button" data-reset-deck="{{ deck.id }}">
+      <i class="bi bi-arrow-counterclockwise"></i> Reset progress
+    </button>
+  </div>
+</section>
+
+<div class="flashcard-study-layout">
+  <section class="panel flashcard-stage-panel">
+    <div class="flashcard-stage-top">
+      <div>
+        <span class="eyebrow">Card <span id="flashcardPosition">1</span> of <span id="flashcardTotal">{{ deck.total_cards }}</span></span>
+        <p class="tiny-muted mb-0" id="flashcardStatusText">Reveal the answer when you are ready.</p>
+      </div>
+      <span class="chip chip-indigo" id="flashcardKnownChip">{{ deck.known_cards }}/{{ deck.total_cards }} known</span>
+    </div>
+
+    <div class="flashcard-progress"><span id="flashcardProgressFill" style="width: 0%"></span></div>
+
+    {% if deck.cards %}
+      <div class="flashcard-scene" id="flashcardScene" tabindex="0" role="button"
+           aria-label="Flashcard. Press Space or Enter to reveal the answer.">
+        <div class="flashcard-3d" id="flashcard3d">
+          <div class="flashcard-face flashcard-front">
+            <span class="flashcard-corner-label" id="flashcardFrontLabel">Question</span>
+            <div class="flashcard-content" id="flashcardFront"></div>
+            <span class="flashcard-hint"><i class="bi bi-hand-index-thumb"></i> Click or press Space to reveal</span>
+          </div>
+          <div class="flashcard-face flashcard-back">
+            <span class="flashcard-corner-label" id="flashcardBackLabel">Answer</span>
+            <div class="flashcard-content" id="flashcardBack"></div>
+            <span class="flashcard-hint"><i class="bi bi-arrow-left-right"></i> Click or press Space to flip back</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flashcard-stage-controls">
+        <button class="btn btn-outline" type="button" id="prevCard">
+          <i class="bi bi-arrow-left"></i> Previous
+        </button>
+        <button class="btn btn-soft" type="button" id="flipCard">
+          <i class="bi bi-arrow-repeat"></i> Reveal answer
+        </button>
+        <button class="btn btn-outline" type="button" id="nextCard">
+          Next <i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
+
+      <div class="review-actions" id="reviewActions">
+        <p class="review-actions-label">How well did you know this?</p>
+        <div class="review-action-grid">
+          <button class="review-action review-again" type="button" data-review-status="review">
+            <i class="bi bi-arrow-counterclockwise"></i>
+            <strong>Review again</strong>
+            <span>Bring it back soon</span>
+          </button>
+          <button class="review-action review-known" type="button" data-review-status="known">
+            <i class="bi bi-check2-circle"></i>
+            <strong>I knew it</strong>
+            <span>Mark as known</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="flashcard-complete d-none" id="flashcardComplete">
+        <div class="complete-icon"><i class="bi bi-trophy"></i></div>
+        <h2>Every card is marked known.</h2>
+        <p>You have reviewed all {{ deck.total_cards }} cards in this deck. Reset it any time to start again.</p>
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+          <button class="btn btn-primary" type="button" id="restartDeck">
+            <i class="bi bi-arrow-repeat"></i> Study all again
+          </button>
+          <a class="btn btn-outline" href="{{ url_for('flashcards.index') }}">Back to decks</a>
+        </div>
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-icon"><i class="bi bi-card-heading"></i></div>
+        <h3>This deck is empty</h3>
+        <p>Delete it and create a new deck from a material with more structured facts.</p>
+        <button class="btn btn-danger-soft" type="button" data-delete-deck="{{ deck.id }}" data-deck-title="{{ deck.title }}">
+          <i class="bi bi-trash3"></i> Delete empty deck
+        </button>
+      </div>
+    {% endif %}
+  </section>
+
+  <aside class="flashcard-side">
+    <section class="panel">
+      <div class="panel-head">
+        <div><h2>Deck progress</h2></div>
+      </div>
+      <div class="deck-stat-ring">
+        <div class="progress-ring" style="--value: {{ deck.mastery_percentage }}">
+          <span id="sideMastery">{{ deck.mastery_percentage }}<small>%</small></span>
+        </div>
+        <div>
+          <strong id="sideKnown">{{ deck.known_cards }} of {{ deck.total_cards }}</strong>
+          <span>cards marked known</span>
+        </div>
+      </div>
+      <dl class="detail-list mt-3">
+        <div><dt>New</dt><dd id="sideNew">{{ deck.new_cards }}</dd></div>
+        <div><dt>Needs review</dt><dd id="sideReview">{{ deck.review_cards }}</dd></div>
+        <div><dt>Known</dt><dd id="sideKnownCount">{{ deck.known_cards }}</dd></div>
+        <div><dt>Created</dt><dd>{{ deck.created_at|nice_date }}</dd></div>
+      </dl>
+      {% if deck.content_id %}
+        <a class="btn btn-sm btn-outline w-100 mt-2" href="{{ url_for('learning.view_content', content_id=deck.content_id) }}">
+          <i class="bi bi-journal-text"></i> Open source material
+        </a>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div><h2>Study mode</h2></div>
+      </div>
+      <div class="study-mode-list" role="group" aria-label="Filter cards">
+        <button class="study-mode is-active" type="button" data-study-mode="all">
+          <span><i class="bi bi-collection"></i> All cards</span><strong id="modeAll">{{ deck.total_cards }}</strong>
+        </button>
+        <button class="study-mode" type="button" data-study-mode="new">
+          <span><i class="bi bi-stars"></i> New only</span><strong>{{ deck.new_cards }}</strong>
+        </button>
+        <button class="study-mode" type="button" data-study-mode="review">
+          <span><i class="bi bi-arrow-counterclockwise"></i> Needs review</span><strong>{{ deck.review_cards }}</strong>
+        </button>
+        <button class="study-mode" type="button" data-study-mode="known">
+          <span><i class="bi bi-check2-circle"></i> Known</span><strong>{{ deck.known_cards }}</strong>
+        </button>
+      </div>
+    </section>
+
+    <section class="panel mt-4">
+      <div class="panel-head">
+        <div><h2>Keyboard</h2></div>
+      </div>
+      <ul class="keyboard-list">
+        <li><span class="key-cap">Space</span><span>Reveal / flip the card</span></li>
+        <li><span class="key-cap">←</span><span>Previous card</span></li>
+        <li><span class="key-cap">→</span><span>Next card</span></li>
+        <li><span class="key-cap">1</span><span>Mark for review</span></li>
+        <li><span class="key-cap">2</span><span>Mark as known</span></li>
+      </ul>
+    </section>
+
+    <section class="panel mt-4 danger-panel">
+      <div class="panel-head">
+        <div><h2>Delete deck</h2></div>
+      </div>
+      <p class="tiny-muted">The deck and its review progress will be removed. Your material stays in history.</p>
+      <button class="btn btn-sm btn-danger-soft w-100" type="button" data-delete-deck="{{ deck.id }}" data-deck-title="{{ deck.title }}">
+        <i class="bi bi-trash3"></i> Delete this deck
+      </button>
+    </section>
+  </aside>
+</div>
+
+<script id="flashcardData" type="application/json">{{ deck_data|tojson }}</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/flashcards.js') }}"></script>
+{% endblock %}

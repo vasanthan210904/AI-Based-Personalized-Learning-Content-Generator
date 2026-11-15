@@ -1,0 +1,122 @@
+{% extends "layouts/app.html" %}
+{% from "layouts/_macros.html" import mode_badge with context %}
+{% block title %}{{ quiz.topic.topic_name if quiz.topic else 'Quiz' }}{% endblock %}
+
+{% block content %}
+<section class="quiz-head">
+  <div>
+    <a class="back-link" href="{{ url_for('quiz.generate_page') }}"><i class="bi bi-arrow-left"></i> Back to quiz studio</a>
+    <h1>{{ quiz.topic.topic_name if quiz.topic else 'Quiz' }}</h1>
+    <div class="quiz-head-meta">
+      <span class="chip chip-indigo">{{ quiz.subject.subject_name if quiz.subject else 'Quiz' }}</span>
+      <span class="chip chip-muted">{{ quiz.difficulty }}</span>
+      <span class="chip chip-muted">{{ questions|length }} questions</span>
+      {{ mode_badge(quiz.ai_mode) }}
+      {% if previous_attempts %}
+        <span class="chip chip-teal">{{ previous_attempts }} previous attempt{{ '' if previous_attempts == 1 else 's' }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="quiz-timer-box">
+    <span class="tiny-muted">Time elapsed</span>
+    <strong id="quizTimer">00:00</strong>
+  </div>
+</section>
+
+<div class="quiz-progress-bar">
+  <div class="quiz-progress-track"><span id="quizProgressFill" style="width: 0%"></span></div>
+  <span class="quiz-progress-label" id="quizProgressLabel">0 of {{ questions|length }} answered</span>
+</div>
+
+<form id="quizTakeForm" data-quiz-id="{{ quiz.id }}" novalidate>
+  <input type="hidden" name="quiz_id" value="{{ quiz.id }}">
+  <div class="quiz-layout">
+    <div class="quiz-questions">
+      {% for question in questions %}
+        <article class="question-card" id="question-{{ question.index }}" data-question-index="{{ question.index }}">
+          <div class="question-head">
+            <span class="question-number">Question {{ loop.index }}</span>
+            <span class="question-status" data-status-for="{{ question.index }}">Unanswered</span>
+          </div>
+          <h2 class="question-text">{{ question.question }}</h2>
+          <div class="option-list">
+            {% for option in question.options %}
+              <label class="option-row">
+                <input type="radio" name="answer_{{ question.index }}" value="{{ loop.index0 }}">
+                <span class="option-key">{{ ['A', 'B', 'C', 'D'][loop.index0] }}</span>
+                <span class="option-text">{{ option }}</span>
+                <span class="option-check"><i class="bi bi-check-lg"></i></span>
+              </label>
+            {% endfor %}
+          </div>
+          <div class="question-foot">
+            <button class="btn btn-sm btn-light" type="button" data-clear-question="{{ question.index }}">
+              <i class="bi bi-eraser"></i> Clear choice
+            </button>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+
+    <aside class="quiz-side">
+      <section class="panel sticky-panel">
+        <div class="panel-head">
+          <div><h2>Question navigator</h2></div>
+        </div>
+        <div class="question-nav" id="questionNav">
+          {% for question in questions %}
+            <a href="#question-{{ question.index }}" class="qnav-item" data-qnav="{{ question.index }}">{{ loop.index }}</a>
+          {% endfor %}
+        </div>
+
+        <div class="quiz-legend">
+          <span><span class="legend-dot answered"></span> Answered</span>
+          <span><span class="legend-dot"></span> Not answered</span>
+        </div>
+
+        <div class="quiz-submit-box">
+          <div class="submit-summary">
+            <span>Answered</span>
+            <strong><span id="answeredCount">0</span>/{{ questions|length }}</strong>
+          </div>
+          <button class="btn btn-primary w-100" type="submit" id="submitQuizButton">
+            <i class="bi bi-send-check"></i>
+            <span>Submit quiz</span>
+          </button>
+          <p class="tiny-muted mb-0">
+            Unanswered questions are marked incorrect but do not count as wrong in your review.
+          </p>
+        </div>
+
+        <div class="quiz-warning" id="unansweredWarning" hidden>
+          <i class="bi bi-exclamation-triangle"></i>
+          <span id="unansweredWarningText"></span>
+        </div>
+      </section>
+
+      <section class="panel mt-4">
+        <div class="panel-head">
+          <div><h2>Tips</h2></div>
+        </div>
+        <ul class="info-list compact">
+          <li><i class="bi bi-lightbulb"></i><div><span>Read all four options before choosing.</span></div></li>
+          <li><i class="bi bi-shield-check"></i><div><span>Answers are checked on the server after you submit.</span></div></li>
+          <li><i class="bi bi-arrow-repeat"></i><div><span>You can retake this quiz from your quiz history.</span></div></li>
+        </ul>
+      </section>
+    </aside>
+  </div>
+</form>
+
+<div class="generating-overlay" id="quizSubmittingOverlay" hidden>
+  <div class="generating-card">
+    <div class="generating-orbit"><span></span><span></span><span></span><i class="bi bi-patch-check"></i></div>
+    <h2>Evaluating your answers</h2>
+    <p>Scoring on the server and building your answer review…</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/quiz_take.js') }}"></script>
+{% endblock %}
