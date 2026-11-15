@@ -133,6 +133,28 @@
           </div>
         </div>
 
+        <!-- AI Model Engine Selector -->
+        <div class="mt-4 p-3 bg-white rounded-3 border">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="form-label fw-bold mb-0 d-flex align-items-center gap-2" for="quizAiEngineSelect">
+              <i class="bi bi-cpu text-primary fs-5"></i>
+              <span>AI Quiz Engine Selector:</span>
+            </label>
+            <span class="badge bg-success-subtle text-success border"><i class="bi bi-shield-check"></i> Multi-Model Ready</span>
+          </div>
+          <select class="form-select with-icon" id="quizAiEngineSelect" name="ai_engine">
+            <option value="groq:qwen/qwen3.8-27b" selected>🚀 Groq · Qwen 2.5 27B (Ultra-Fast ~1s, 100% Free)</option>
+            <option value="groq:openai/gpt-oss-120b">🧠 Groq · DeepSeek/GPT-OSS 120B (Deep Reasoning, Free)</option>
+            <option value="gemini:gemma-4-26b-a4b-it">✨ Google Gemini · Gemma 4 IT (Google AI Studio, Free)</option>
+            <option value="openrouter:nvidia/nemotron-3.5-lightning:free">🌐 OpenRouter · Nemotron 3.5 Lightning (Free Model)</option>
+            <option value="offline:curriculum">📚 Offline Academic Engine (No API key needed, 100% offline)</option>
+          </select>
+          <div class="small text-muted mt-2 d-flex align-items-center gap-1">
+            <i class="bi bi-stars text-primary"></i>
+            <span>Questions, options, correct answers, and full explanations are crafted by the selected model.</span>
+          </div>
+        </div>
+
         <div class="generate-bar mt-4">
           <div class="generate-note">
             <i class="bi bi-shield-lock"></i>

@@ -197,14 +197,26 @@ def _validate_payload(payload: dict) -> tuple[Subject, Topic, str, str, str, str
 def generate_learning_content(user, payload: dict) -> LearningContent:
     subject, topic, level, content_type, language, style = _validate_payload(payload)
     config = current_app.config
-    ai = AIService(config)
+
+    ai_engine = str(payload.get("ai_engine") or payload.get("ai_model") or "").strip()
+    custom_prov, custom_mod = None, None
+    if ":" in ai_engine:
+        custom_prov, custom_mod = ai_engine.split(":", 1)
+    elif ai_engine:
+        custom_prov = ai_engine
+
+    if custom_prov == "offline":
+        ai = None
+    else:
+        ai = AIService(config, provider=custom_prov, model=custom_mod)
+
     profile = user.profile
 
     content: dict | None = None
     mode = "demo"
     note = ""
 
-    if ai.is_live_available():
+    if ai and ai.is_live_available():
         system_prompt, user_prompt = build_content_prompt(
             subject_name=subject.subject_name,
             subject_description=subject.description or "",

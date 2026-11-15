@@ -208,6 +208,7 @@
       learning_level: data.get("learning_level"),
       explanation_style: data.get("explanation_style"),
       language: data.get("language"),
+      ai_engine: data.get("ai_engine") || form.querySelector("#aiEngineSelect")?.value,
       create_flashcards: Boolean(form.querySelector("#createFlashcardsToggle")?.checked),
     };
 

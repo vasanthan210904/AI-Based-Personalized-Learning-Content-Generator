@@ -156,6 +156,7 @@
       subject_id: data.get("subject_id"),
       difficulty: data.get("difficulty"),
       num_questions: data.get("num_questions"),
+      ai_engine: data.get("ai_engine") || form.querySelector("#quizAiEngineSelect")?.value,
     };
 
     if (isCustomTopicMode) {

@@ -119,7 +119,19 @@ def _validate_payload(payload: dict) -> tuple[Subject, Topic, str, int]:
 def generate_quiz(user, payload: dict) -> Quiz:
     subject, topic, difficulty, count = _validate_payload(payload)
     config = current_app.config
-    ai = AIService(config)
+
+    ai_engine = str(payload.get("ai_engine") or payload.get("ai_model") or "").strip()
+    custom_prov, custom_mod = None, None
+    if ":" in ai_engine:
+        custom_prov, custom_mod = ai_engine.split(":", 1)
+    elif ai_engine:
+        custom_prov = ai_engine
+
+    if custom_prov == "offline":
+        ai = None
+    else:
+        ai = AIService(config, provider=custom_prov, model=custom_mod)
+
     profile = user.profile
     level = profile.learning_level if profile else "Intermediate"
     language = profile.preferred_language if profile else "English"
@@ -128,7 +140,7 @@ def generate_quiz(user, payload: dict) -> Quiz:
     mode = "demo"
     note = ""
 
-    if ai.is_live_available():
+    if ai and ai.is_live_available():
         system_prompt, user_prompt = build_quiz_prompt(
             subject_name=subject.subject_name,
             topic_name=topic.topic_name,

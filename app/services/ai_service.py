@@ -42,19 +42,35 @@ class AIServiceError(Exception):
 
 
 class AIService:
-    def __init__(self, config=None):
+    def __init__(self, config=None, provider: str | None = None, model: str | None = None):
         self.config = config or current_app.config
+        self._custom_provider = provider
+        self._custom_model = model
 
     # ------------------------------------------------------------------
     # Availability
     # ------------------------------------------------------------------
     @property
     def provider(self) -> str:
-        return (self.config.get("AI_PROVIDER") or "nvidia").lower()
+        if self._custom_provider:
+            return self._custom_provider.lower()
+        return (self.config.get("AI_PROVIDER") or "groq").lower()
 
     @property
     def model(self) -> str:
-        return self.config.get("AI_MODEL") or "deepseek-ai/deepseek-v4.1-flash"
+        if self._custom_model:
+            return self._custom_model
+        return self.config.get("AI_MODEL") or "qwen/qwen3.8-27b"
+
+    @property
+    def api_key(self) -> str:
+        return {
+            "nvidia": self.config.get("NVIDIA_API_KEY") or self.config.get("AI_API_KEY", ""),
+            "gemini": self.config.get("GEMINI_API_KEY") or self.config.get("AI_API_KEY", ""),
+            "openai": self.config.get("OPENAI_API_KEY") or self.config.get("AI_API_KEY", ""),
+            "openrouter": self.config.get("OPENROUTER_API_KEY") or self.config.get("OPENAI_API_KEY") or self.config.get("AI_API_KEY", ""),
+            "groq": self.config.get("GROQ_API_KEY") or self.config.get("AI_API_KEY", ""),
+        }.get(self.provider, self.config.get("AI_API_KEY", ""))
 
     @property
     def key_env_name(self) -> str:
@@ -62,7 +78,7 @@ class AIService:
             "nvidia": "NVIDIA_API_KEY",
             "gemini": "GEMINI_API_KEY",
             "openai": "OPENAI_API_KEY",
-            "openrouter": "OPENAI_API_KEY",
+            "openrouter": "OPENROUTER_API_KEY",
             "groq": "GROQ_API_KEY",
         }.get(self.provider, "AI_API_KEY")
 
@@ -73,7 +89,7 @@ class AIService:
     def is_live_available(self) -> bool:
         if self.demo_mode_setting == "on":
             return False
-        return bool(self.config.get("AI_API_KEY"))
+        return bool(self.api_key)
 
     def status(self) -> dict:
         live = self.is_live_available()
@@ -315,7 +331,7 @@ class AIService:
             },
         }
         headers = {
-            "x-goog-api-key": self.config["AI_API_KEY"],
+            "x-goog-api-key": self.api_key,
             "Content-Type": "application/json",
         }
         response = self._post(url, headers, payload)
@@ -356,7 +372,7 @@ class AIService:
         base_url = self._base_url()
         url = f"{base_url}/chat/completions"
         headers = {
-            "Authorization": f"Bearer {self.config['AI_API_KEY']}",
+            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
         if self.provider == "openrouter":
