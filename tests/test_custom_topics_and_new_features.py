@@ -125,3 +125,65 @@ def test_custom_topic_study_plan_generation(student_client, app):
         ta = Topic.query.filter_by(subject_id=sub.id, topic_name="Transformer Attention").first()
         assert rl is not None
         assert ta is not None
+
+
+def test_cheat_sheet_and_ask_tutor_api(student_client, app):
+    """Verifies the new AI Revision Cheat Sheet and Ask Tutor endpoints."""
+    with app.app_context():
+        sub = Subject.query.first()
+        topic = Topic.query.filter_by(subject_id=sub.id).first()
+        student = User.query.filter_by(role="student").first()
+
+        content = LearningContent(
+            user_id=student.id,
+            subject_id=sub.id,
+            topic_id=topic.id,
+            title="Introduction to Machine Learning",
+            learning_level="Beginner",
+            content_type="Detailed Explanation",
+            language="English",
+            explanation_style="Visual & Examples",
+            generated_content={
+                "introduction": "Machine learning enables systems to learn from data patterns.",
+                "summary": "Core algorithms generalize from historical observations.",
+                "important_definitions": [
+                    {"term": "Supervised Learning", "definition": "Learning from input-output pairs."},
+                    {"term": "Overfitting", "definition": "Fitting training noise instead of the general trend."}
+                ],
+                "basic_concepts": [
+                    {"heading": "Loss Function", "explanation": "Quantifies the discrepancy between predictions and targets."}
+                ],
+                "practical_applications": [
+                    "Email spam detection",
+                    "Autonomous vehicles navigation"
+                ]
+            },
+            ai_mode="demo"
+        )
+        db.session.add(content)
+        db.session.commit()
+        content_id = content.id
+
+    # 1. Test Cheat Sheet endpoint
+    cs_resp = student_client.get(f"/api/learning-content/{content_id}/cheat-sheet")
+    assert cs_resp.status_code == 200
+    cs_data = cs_resp.get_json()
+    assert cs_data["success"] is True
+    data = cs_data["data"]
+    assert len(data["definitions"]) >= 2
+    assert any("Supervised Learning" in d["term"] for d in data["definitions"])
+    assert len(data["takeaways"]) >= 1
+    assert len(data["common_pitfalls"]) >= 1
+    assert len(data["mnemonics"]) >= 1
+
+    # 2. Test Ask Tutor endpoint
+    tutor_resp = student_client.post(
+        f"/api/learning-content/{content_id}/ask-tutor",
+        json={"question": "What is the key difference between classification and regression?"}
+    )
+    assert tutor_resp.status_code == 200
+    tutor_data = tutor_resp.get_json()
+    assert tutor_data["success"] is True
+    assert tutor_data["data"]["answer"]
+    assert len(tutor_data["data"]["suggested_followups"]) >= 1
+

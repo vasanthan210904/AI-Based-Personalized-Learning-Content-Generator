@@ -149,5 +149,73 @@
     event.returnValue = "";
   });
 
+  /* ------------------------------------------------------------------ */
+  /* Speed Challenge Mode                                               */
+  /* ------------------------------------------------------------------ */
+  const speedSwitch = document.getElementById("speedModeSwitch");
+  const speedBanner = document.getElementById("speedChallengeBanner");
+  const speedText = document.getElementById("speedCountdownText");
+  const streakBadge = document.getElementById("speedStreakBadge");
+
+  let speedActive = false;
+  let qCountdown = 45;
+  let qTimer = null;
+  let currentStreak = 0;
+
+  function resetQuestionCountdown() {
+    qCountdown = 45;
+    if (speedText) speedText.textContent = `${qCountdown}s remaining for this question`;
+  }
+
+  function startSpeedTimer() {
+    if (qTimer) clearInterval(qTimer);
+    resetQuestionCountdown();
+    qTimer = setInterval(() => {
+      if (!speedActive) return;
+      qCountdown--;
+      if (speedText) {
+        speedText.textContent = `${qCountdown}s remaining for this question`;
+        if (qCountdown <= 10) {
+          speedText.classList.add("text-danger");
+        } else {
+          speedText.classList.remove("text-danger");
+        }
+      }
+      if (qCountdown <= 0) {
+        LF.showToast("Time expired on this question! Moving forward.", "warning");
+        const nextUnanswered = questionCards.find(
+          (c) => !selectedFor(c.getAttribute("data-question-index"))
+        );
+        if (nextUnanswered) {
+          nextUnanswered.scrollIntoView({ behavior: "smooth", block: "center" });
+          resetQuestionCountdown();
+        } else {
+          clearInterval(qTimer);
+        }
+      }
+    }, 1000);
+  }
+
+  speedSwitch?.addEventListener("change", () => {
+    speedActive = speedSwitch.checked;
+    if (speedBanner) speedBanner.classList.toggle("d-none", !speedActive);
+    if (speedActive) {
+      LF.showToast("Speed Challenge activated: 45s countdown per question!", "info");
+      startSpeedTimer();
+    } else {
+      if (qTimer) clearInterval(qTimer);
+    }
+  });
+
+  form.addEventListener("change", (e) => {
+    if (e.target.matches('input[type="radio"]')) {
+      currentStreak++;
+      if (streakBadge) streakBadge.textContent = `🔥 Streak: ${currentStreak}x`;
+      if (speedActive) {
+        resetQuestionCountdown();
+      }
+    }
+  });
+
   refresh();
 })();

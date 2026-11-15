@@ -9,6 +9,15 @@
       <i class="bi bi-arrow-left"></i> Back to history
     </a>
     <div class="viewer-actions">
+      <button class="btn btn-sm btn-outline-warning" type="button" id="btnOpenCheatSheet" data-bs-toggle="modal" data-bs-target="#cheatSheetModal">
+        <i class="bi bi-lightning-charge-fill"></i> Quick Cheat Sheet
+      </button>
+      <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasAiTutor">
+        <i class="bi bi-robot"></i> Ask AI Tutor
+      </button>
+      <button class="btn btn-sm btn-outline-secondary" type="button" id="btnToggleAudioBar">
+        <i class="bi bi-headphones"></i> Listen (TTS)
+      </button>
       <button class="btn btn-sm btn-outline" type="button" onclick="window.print()">
         <i class="bi bi-printer"></i> Print
       </button>
@@ -54,6 +63,77 @@
 <div class="row g-4 mt-1">
   <div class="col-xl-9">
     <article class="reading-card" id="readingCard">
+      <!-- AI Audio Reader (Voice Playback) -->
+      <div class="audio-reader-bar p-3 mb-4 rounded-3 border d-flex flex-wrap align-items-center justify-content-between gap-3 bg-white shadow-sm" id="audioReaderBar">
+        <div class="d-flex align-items-center gap-3">
+          <div class="reader-icon bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+            <i class="bi bi-headphones fs-5"></i>
+          </div>
+          <div>
+            <div class="fw-semibold text-dark">AI Audio Reader</div>
+            <small class="text-muted" id="readerStatus">Listen to notes read aloud with browser speech synthesis</small>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-sm btn-primary" id="btnPlaySpeech">
+            <i class="bi bi-play-fill"></i> Play
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPauseSpeech" disabled>
+            <i class="bi bi-pause-fill"></i> Pause
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-danger" id="btnStopSpeech" disabled>
+            <i class="bi bi-stop-fill"></i> Stop
+          </button>
+          <div class="input-group input-group-sm" style="width: 105px;">
+            <label class="input-group-text" for="speechRateSelect"><i class="bi bi-speedometer2"></i></label>
+            <select class="form-select" id="speechRateSelect">
+              <option value="0.85">0.8x</option>
+              <option value="1.0" selected>1.0x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visual Concept Flowchart / Knowledge Map -->
+      <section class="reading-section mb-4 p-4 bg-light rounded-3 border" id="conceptMapSection">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary rounded-pill px-3 py-2"><i class="bi bi-diagram-3-fill me-1"></i> Visual Flow</span>
+            <h2 class="h5 mb-0 fw-bold">Concept Knowledge Flowchart</h2>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#mapCollapse">
+            <i class="bi bi-arrows-expand"></i> Toggle View
+          </button>
+        </div>
+        <div class="collapse show" id="mapCollapse">
+          <div class="p-3 bg-white rounded-3 border text-center overflow-auto" id="mindMapContainer">
+            <div class="mermaid">
+              graph TD
+                Root["{{ (data.title or content.title)|replace('"', '')|truncate(45) }}"]
+                Root --> Obj["Learning Objectives"]
+                Root --> Concepts["Core Concepts"]
+                Root --> Apps["Real-World Applications"]
+                {% if data.basic_concepts %}
+                  {% for c in data.basic_concepts[:3] %}
+                    Concepts --> C{{ loop.index }}["{{ c.heading|replace('"', '')|truncate(35) }}"]
+                  {% endfor %}
+                {% endif %}
+                {% if data.practical_applications %}
+                  {% for app in data.practical_applications[:2] %}
+                    Apps --> App{{ loop.index }}["{{ app|replace('"', '')|truncate(35) }}"]
+                  {% endfor %}
+                {% endif %}
+                Concepts --> Exam["Exam Review & FAQs"]
+                Apps --> Exam
+                classDef default fill:#f8faff,stroke:#4f46e5,stroke-width:1.5px,color:#1e1b4b;
+                classDef head fill:#4f46e5,stroke:#4338ca,stroke-width:2px,color:#ffffff;
+                class Root head;
+            </div>
+          </div>
+        </div>
+      </section>
       {% if data.introduction %}
         <section class="reading-section" id="introduction">
           <span class="section-number">01</span>
@@ -387,9 +467,113 @@
   </div>
 </div>
 
+<!-- Floating Ask AI Tutor Button -->
+<button class="btn btn-primary rounded-pill shadow-lg d-flex align-items-center gap-2 px-4 py-3"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#offcanvasAiTutor"
+        style="position: fixed; bottom: 28px; right: 28px; z-index: 1040; font-weight: 600; box-shadow: 0 8px 24px rgba(79, 70, 229, 0.35);">
+  <i class="bi bi-robot fs-5"></i>
+  <span>Ask AI Tutor</span>
+</button>
+
+<!-- AI Tutor Offcanvas Drawer -->
+<div class="offcanvas offcanvas-end shadow" tabindex="-1" id="offcanvasAiTutor" aria-labelledby="offcanvasAiTutorLabel" style="width: 440px;">
+  <div class="offcanvas-header border-bottom bg-light">
+    <div class="d-flex align-items-center gap-2">
+      <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+        <i class="bi bi-robot"></i>
+      </div>
+      <div>
+        <h5 class="offcanvas-title fw-bold mb-0" id="offcanvasAiTutorLabel">AI Tutor</h5>
+        <small class="text-muted">Instant doubts &amp; explanations</small>
+      </div>
+    </div>
+    <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+  </div>
+  <div class="offcanvas-body d-flex flex-column p-3" style="background-color: #fbfbfe;">
+    <div class="chat-stream flex-grow-1 overflow-auto mb-3" id="tutorChatStream" style="max-height: calc(100vh - 240px);">
+      <div class="tutor-msg p-3 bg-white rounded-3 border mb-3 shadow-sm">
+        <div class="fw-semibold text-primary mb-1 d-flex align-items-center gap-1">
+          <i class="bi bi-stars"></i> LearnForge AI Tutor
+        </div>
+        <p class="small text-secondary mb-2">
+          Hi! I'm your AI study assistant for <strong>{{ data.title or content.title }}</strong>.
+          Have a doubt, need an analogy, or want another worked example? Ask me below!
+        </p>
+        <div class="small fw-semibold text-muted mb-1">Quick Prompts:</div>
+        <div class="d-flex flex-wrap gap-1" id="quickDoubtChips">
+          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2 small tutor-chip">Explain with a simple analogy</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2 small tutor-chip">Give a code example</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill py-1 px-2 small tutor-chip">What is a key exam question?</button>
+        </div>
+      </div>
+    </div>
+
+    <form id="tutorQuestionForm" class="mt-auto border-top pt-2">
+      <div class="input-group">
+        <input type="text" class="form-control" id="tutorQuestionInput" placeholder="Ask any doubt about this topic..." required>
+        <button class="btn btn-primary" type="submit" id="btnSubmitTutorQuestion">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </div>
+      <div class="d-flex justify-content-between align-items-center mt-1">
+        <small class="text-muted" style="font-size: 0.72rem;">Powered by Groq &amp; Gemini AI</small>
+        <small class="text-muted" style="font-size: 0.72rem;">Answers contextual to your notes</small>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- AI Revision Cheat Sheet Modal -->
+<div class="modal fade" id="cheatSheetModal" tabindex="-1" aria-labelledby="cheatSheetModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-gradient text-white" style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-lightning-charge-fill fs-4 text-warning"></i>
+          <div>
+            <h5 class="modal-title fw-bold text-white mb-0" id="cheatSheetModalLabel">Quick Revision Cheat Sheet</h5>
+            <small class="text-white-50">{{ data.title or content.title }} · High-Yield Cram Notes</small>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4" id="cheatSheetModalBody">
+        <div class="text-center py-4" id="cheatSheetLoading">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted mt-2 small">Compiling high-yield revision points...</p>
+        </div>
+        <div id="cheatSheetContent" class="d-none">
+          <div class="row g-3" id="cheatSheetGrid">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light d-flex justify-content-between">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnCopyCheatSheet">
+          <i class="bi bi-clipboard"></i> Copy All
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-primary" onclick="window.print()">
+            <i class="bi bi-printer"></i> Print Sheet
+          </button>
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script id="viewerData" type="application/json">{{ {"contentId": content.id} | tojson }}</script>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  if (window.mermaid) {
+    mermaid.initialize({ startOnLoad: true, theme: 'neutral', securityLevel: 'loose' });
+  }
+</script>
 <script src="{{ url_for('static', filename='js/viewer.js') }}"></script>
 {% endblock %}

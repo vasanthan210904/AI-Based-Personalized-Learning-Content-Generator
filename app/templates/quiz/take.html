@@ -17,11 +17,29 @@
       {% endif %}
     </div>
   </div>
-  <div class="quiz-timer-box">
-    <span class="tiny-muted">Time elapsed</span>
-    <strong id="quizTimer">00:00</strong>
+  <div class="d-flex align-items-center gap-3">
+    <div class="form-check form-switch m-0 d-flex align-items-center gap-2">
+      <input class="form-check-input" type="checkbox" role="switch" id="speedModeSwitch">
+      <label class="form-check-label small fw-bold text-dark text-nowrap" for="speedModeSwitch">
+        <i class="bi bi-lightning-charge-fill text-warning"></i> Speed Challenge
+      </label>
+    </div>
+    <div class="quiz-timer-box">
+      <span class="tiny-muted">Time elapsed</span>
+      <strong id="quizTimer">00:00</strong>
+    </div>
   </div>
 </section>
+
+<div class="speed-challenge-banner d-none mb-3 p-2 px-3 rounded-3 border d-flex justify-content-between align-items-center" id="speedChallengeBanner" style="background: #fff8e6; border-color: #fde68a !important;">
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge bg-warning text-dark"><i class="bi bi-stopwatch"></i> Speed Run</span>
+    <span class="small text-dark fw-semibold" id="speedCountdownText">45s remaining for this question</span>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge bg-danger fw-bold" id="speedStreakBadge">🔥 Streak: 0x</span>
+  </div>
+</div>
 
 <div class="quiz-progress-bar">
   <div class="quiz-progress-track"><span id="quizProgressFill" style="width: 0%"></span></div>

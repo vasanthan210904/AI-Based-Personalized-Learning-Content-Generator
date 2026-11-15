@@ -159,6 +159,124 @@ def api_delete_content(content_id: int):
     return api_success({"id": content_id}, message="Learning material deleted.")
 
 
+@learning_bp.post("/api/learning-content/<int:content_id>/ask-tutor")
+@student_required
+@rate_limit("ai")
+def api_ask_tutor(content_id: int):
+    record = get_owned_or_404(LearningContent, content_id)
+    payload = request.get_json(silent=True) or {}
+    question = clean_text(payload.get("question", ""), 500)
+    if not question:
+        from ..utils.validation import ValidationError
+        raise ValidationError("Please ask a question about this topic.", "question")
+
+    from ..services.ai_service import AIService
+    from flask import current_app
+    ai = AIService(current_app.config)
+
+    subject_str = record.subject.subject_name if record.subject else "General"
+    topic_str = record.topic.topic_name if record.topic else record.title
+    summary_snippet = (record.generated_content or {}).get("summary", "")[:300]
+
+    system_prompt = (
+        f"You are LearnForge AI Tutor, a friendly, encouraging college professor assisting a {record.learning_level} student "
+        f"studying '{topic_str}' in {subject_str}. Topic overview: {summary_snippet}. "
+        "Answer the student's question clearly, accurately, and concisely (1-2 short paragraphs or bullet points). "
+        "Always return ONLY a JSON object formatted as: "
+        '{"answer": "markdown-formatted clear explanation", "suggested_followups": ["Short follow-up question 1?", "Short follow-up question 2?"]}'
+    )
+    user_prompt = f"Student question regarding '{topic_str}':\n\n{question}"
+
+    answer = ""
+    followups = [
+        f"How does {topic_str} connect to real-world engineering?",
+        f"What is the most common exam question on {topic_str}?",
+    ]
+
+    if ai.is_live_available():
+        try:
+            res = ai.generate_json(system_prompt, user_prompt, max_tokens=1200, temperature=0.6)
+            if isinstance(res, dict):
+                answer = str(res.get("answer") or "").strip()
+                if isinstance(res.get("suggested_followups"), list):
+                    followups = [str(f) for f in res["suggested_followups"][:3]]
+        except Exception as exc:
+            current_app.logger.warning("Ask tutor fallback: %s", exc)
+
+    if not answer:
+        answer = (
+            f"**Regarding '{question}' in {topic_str}:**\n\n"
+            f"In {record.learning_level} studies of {topic_str}, focus on how the core principles apply "
+            f"to practical problem-solving. Review **Section 05 (Important Definitions)** and **Section 08 (Real-World Examples)** "
+            f"in your notes above to see concrete applications."
+        )
+
+    return api_success({
+        "question": question,
+        "answer": answer,
+        "suggested_followups": followups,
+    })
+
+
+@learning_bp.get("/api/learning-content/<int:content_id>/cheat-sheet")
+@student_required
+def api_cheat_sheet(content_id: int):
+    record = get_owned_or_404(LearningContent, content_id)
+    doc = record.generated_content or {}
+    topic_str = record.topic.topic_name if record.topic else record.title
+    subject_str = record.subject.subject_name if record.subject else "General"
+
+    core_definitions = []
+    if doc.get("important_definitions"):
+        for d in doc["important_definitions"][:6]:
+            if isinstance(d, dict):
+                core_definitions.append({
+                    "term": d.get("term", ""),
+                    "meaning": d.get("definition", d.get("meaning", ""))
+                })
+
+    takeaways = []
+    if doc.get("summary"):
+        takeaways.append(doc["summary"])
+    if doc.get("introduction"):
+        takeaways.append(doc["introduction"][:240] + ("..." if len(doc["introduction"]) > 240 else ""))
+    if doc.get("practical_applications"):
+        for app in doc["practical_applications"][:3]:
+            takeaways.append(f"Application: {app}")
+
+    formulas = []
+    if doc.get("basic_concepts"):
+        for c in doc["basic_concepts"][:4]:
+            if isinstance(c, dict) and c.get("heading"):
+                explanation = c.get("explanation") or ""
+                formulas.append({
+                    "name": c.get("heading", ""),
+                    "summary": explanation[:160] + ("..." if len(explanation) > 160 else "")
+                })
+
+    pitfalls = [
+        f"Confusing {topic_str} core assumptions with general heuristics.",
+        "Overlooking boundary conditions or edge cases in exam problem formulations.",
+        "Memorizing formulas without understanding the input variable constraints."
+    ]
+
+    mnemonics = [
+        f"The 4-Step Rule for {topic_str}: Define → Diagram → Derive → Demonstrate.",
+        "Feynman Technique: Explain this topic in 3 sentences to test complete mastery."
+    ]
+
+    return api_success({
+        "topic": topic_str,
+        "subject": subject_str,
+        "level": record.learning_level,
+        "definitions": core_definitions,
+        "takeaways": takeaways,
+        "formulas_and_concepts": formulas,
+        "common_pitfalls": pitfalls,
+        "mnemonics": mnemonics
+    })
+
+
 @learning_bp.get("/api/download-pdf/<int:content_id>")
 @student_required
 def download_pdf(content_id: int):

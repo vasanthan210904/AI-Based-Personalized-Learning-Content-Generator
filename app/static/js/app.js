@@ -516,6 +516,254 @@
     }
   }
 
+  /* ------------------------------------------------------------------ */
+  /* Pomodoro Focus Timer & Ambient Soundscape                          */
+  /* ------------------------------------------------------------------ */
+  let pomoRemaining = 25 * 60;
+  let pomoTotal = 25 * 60;
+  let pomoTimerId = null;
+  let pomoIsRunning = false;
+  let audioCtx = null;
+  let ambientSourceNode = null;
+  let ambientGainNode = null;
+
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  }
+
+  function updatePomoDisplay() {
+    const text = formatTime(pomoRemaining);
+    const bigEl = document.getElementById("pomoTimerDisplay");
+    const topEl = document.getElementById("topbarTimerDisplay");
+    if (bigEl) bigEl.textContent = text;
+    if (topEl) topEl.textContent = text;
+  }
+
+  function playChime() {
+    try {
+      const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.6); // A5
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 1.2);
+    } catch (_) {}
+  }
+
+  function stopAmbientSound() {
+    if (ambientSourceNode) {
+      try {
+        if (ambientSourceNode.stop) ambientSourceNode.stop();
+        if (ambientSourceNode.disconnect) ambientSourceNode.disconnect();
+      } catch (_) {}
+      ambientSourceNode = null;
+    }
+    const badge = document.getElementById("soundStatusBadge");
+    if (badge) {
+      badge.textContent = "Off";
+      badge.className = "badge bg-white text-muted border small";
+    }
+  }
+
+  function startAmbientSound(type, volume = 0.5) {
+    stopAmbientSound();
+    if (type === "off") return;
+
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      if (!ambientGainNode) {
+        ambientGainNode = audioCtx.createGain();
+        ambientGainNode.connect(audioCtx.destination);
+      }
+      ambientGainNode.gain.setValueAtTime(volume * 0.4, audioCtx.currentTime);
+
+      if (type === "white" || type === "rain") {
+        // Generate 3 seconds of white noise in buffer and loop it
+        const bufferSize = audioCtx.sampleRate * 3;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+
+        const whiteNoise = audioCtx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        whiteNoise.loop = true;
+
+        if (type === "rain") {
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = "lowpass";
+          filter.frequency.setValueAtTime(900, audioCtx.currentTime);
+          whiteNoise.connect(filter);
+          filter.connect(ambientGainNode);
+        } else {
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = "bandpass";
+          filter.frequency.setValueAtTime(1200, audioCtx.currentTime);
+          filter.Q.setValueAtTime(1.2, audioCtx.currentTime);
+          whiteNoise.connect(filter);
+          filter.connect(ambientGainNode);
+        }
+
+        whiteNoise.start();
+        ambientSourceNode = whiteNoise;
+      } else if (type === "alpha") {
+        // Binaural beat: 200Hz base and 210Hz (10Hz alpha difference)
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        osc1.type = "sine";
+        osc2.type = "sine";
+        osc1.frequency.setValueAtTime(200, audioCtx.currentTime);
+        osc2.frequency.setValueAtTime(210, audioCtx.currentTime);
+
+        const merger = audioCtx.createChannelMerger(2);
+        osc1.connect(merger, 0, 0);
+        osc2.connect(merger, 0, 1);
+        merger.connect(ambientGainNode);
+
+        osc1.start();
+        osc2.start();
+        ambientSourceNode = {
+          stop: () => {
+            osc1.stop();
+            osc2.stop();
+          },
+          disconnect: () => {
+            osc1.disconnect();
+            osc2.disconnect();
+          },
+        };
+      }
+
+      const badge = document.getElementById("soundStatusBadge");
+      if (badge) {
+        badge.textContent = "Playing";
+        badge.className = "badge bg-success text-white small";
+      }
+    } catch (err) {
+      console.warn("Ambient audio error:", err);
+    }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Live Instant History & Card Filtering                              */
+  /* ------------------------------------------------------------------ */
+  function initLiveFilter() {
+    const searchInputs = document.querySelectorAll('.filter-search input[name="q"]');
+    searchInputs.forEach((input) => {
+      const form = input.closest("form");
+      const grid = document.querySelector(".content-grid, .quiz-history-grid, .plan-grid");
+      if (!grid) return;
+      const cards = Array.from(grid.querySelectorAll("article, .history-card, .plan-card"));
+
+      input.addEventListener("input", () => {
+        const query = input.value.trim().toLowerCase();
+        let matchCount = 0;
+        cards.forEach((card) => {
+          const text = card.textContent.toLowerCase();
+          const matches = !query || text.includes(query);
+          card.style.display = matches ? "" : "none";
+          if (matches) matchCount++;
+        });
+
+        const countBadge = form?.querySelector(".filter-count");
+        if (countBadge && query) {
+          countBadge.textContent = `${matchCount} of ${cards.length} match`;
+        }
+      });
+    });
+  }
+
+  function initFocusTimer() {
+    const playBtn = document.getElementById("btnPomoStart");
+    const playIcon = document.getElementById("pomoPlayIcon");
+    const resetBtn = document.getElementById("btnPomoReset");
+    const modeRadios = document.querySelectorAll('input[name="timerMode"]');
+    const statusText = document.getElementById("pomoSessionStatus");
+    const soundSelect = document.getElementById("ambientSoundSelect");
+    const soundVol = document.getElementById("soundVolume");
+
+    if (!playBtn) return;
+
+    modeRadios.forEach((radio) => {
+      radio.addEventListener("change", () => {
+        const mins = parseInt(radio.value, 10) || 25;
+        pomoTotal = mins * 60;
+        pomoRemaining = pomoTotal;
+        if (pomoIsRunning) {
+          clearInterval(pomoTimerId);
+          pomoIsRunning = false;
+          playIcon.className = "bi bi-play-fill fs-3";
+        }
+        updatePomoDisplay();
+        if (statusText) {
+          statusText.textContent = mins === 25 ? "Stay focused on reading or practicing" : "Time for a relaxing break!";
+        }
+      });
+    });
+
+    playBtn.addEventListener("click", () => {
+      if (pomoIsRunning) {
+        clearInterval(pomoTimerId);
+        pomoIsRunning = false;
+        playIcon.className = "bi bi-play-fill fs-3";
+      } else {
+        pomoIsRunning = true;
+        playIcon.className = "bi bi-pause-fill fs-3";
+        pomoTimerId = setInterval(() => {
+          if (pomoRemaining > 0) {
+            pomoRemaining--;
+            updatePomoDisplay();
+          } else {
+            clearInterval(pomoTimerId);
+            pomoIsRunning = false;
+            playIcon.className = "bi bi-play-fill fs-3";
+            playChime();
+            LF.showToast("🔔 Focus session complete! Great work.", "success");
+            stopAmbientSound();
+            if (soundSelect) soundSelect.value = "off";
+          }
+        }, 1000);
+      }
+    });
+
+    resetBtn?.addEventListener("click", () => {
+      if (pomoIsRunning) {
+        clearInterval(pomoTimerId);
+        pomoIsRunning = false;
+        playIcon.className = "bi bi-play-fill fs-3";
+      }
+      pomoRemaining = pomoTotal;
+      updatePomoDisplay();
+    });
+
+    soundSelect?.addEventListener("change", () => {
+      const vol = parseFloat(soundVol?.value || "0.5");
+      startAmbientSound(soundSelect.value, vol);
+    });
+
+    soundVol?.addEventListener("input", () => {
+      if (ambientGainNode && audioCtx) {
+        const vol = parseFloat(soundVol.value || "0.5");
+        ambientGainNode.gain.setValueAtTime(vol * 0.4, audioCtx.currentTime);
+      }
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     initTheme();
     initSidebar();
@@ -524,5 +772,7 @@
     initContentDeletes();
     initBookmarkToggles();
     initAiModelSwitcher();
+    initFocusTimer();
+    initLiveFilter();
   });
 })();

@@ -35,4 +35,69 @@
     </div>
   </div>
 </div>
+
+<!-- Pomodoro Focus Study Timer & Ambient Soundscape Modal -->
+<div class="modal fade" id="focusTimerModal" tabindex="-1" aria-labelledby="focusTimerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 440px;">
+    <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+      <div class="modal-header border-0 pb-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+        <h5 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="focusTimerModalLabel">
+          <i class="bi bi-clock-history text-danger"></i> Pomodoro Focus Timer
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center px-4 py-3">
+        <!-- Mode switcher -->
+        <div class="btn-group w-100 mb-4 p-1 bg-light rounded-pill border" role="group">
+          <input type="radio" class="btn-check" name="timerMode" id="modeFocus" value="25" checked>
+          <label class="btn btn-sm rounded-pill fw-semibold border-0" for="modeFocus">Focus 25m</label>
+
+          <input type="radio" class="btn-check" name="timerMode" id="modeShort" value="5">
+          <label class="btn btn-sm rounded-pill fw-semibold border-0" for="modeShort">Break 5m</label>
+
+          <input type="radio" class="btn-check" name="timerMode" id="modeLong" value="15">
+          <label class="btn btn-sm rounded-pill fw-semibold border-0" for="modeLong">Long Break 15m</label>
+        </div>
+
+        <!-- Big Timer Display -->
+        <div class="py-2">
+          <div class="display-1 fw-bold text-dark font-monospace tracking-tight" id="pomoTimerDisplay">25:00</div>
+          <p class="text-muted small mb-3" id="pomoSessionStatus">Stay focused on reading or practicing</p>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="d-flex justify-content-center align-items-center gap-3 mb-4">
+          <button type="button" class="btn btn-primary rounded-circle p-0 d-flex align-items-center justify-content-center shadow" style="width: 54px; height: 54px;" id="btnPomoStart">
+            <i class="bi bi-play-fill fs-3" id="pomoPlayIcon"></i>
+          </button>
+          <button type="button" class="btn btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;" id="btnPomoReset" title="Reset Timer">
+            <i class="bi bi-arrow-counterclockwise fs-5"></i>
+          </button>
+        </div>
+
+        <!-- Ambient Sound Generator -->
+        <div class="p-3 bg-light rounded-3 text-start border">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="small fw-bold text-dark mb-0 d-flex align-items-center gap-1">
+              <i class="bi bi-music-note-beamed text-primary"></i> Focus Soundscape (Synthesized)
+            </label>
+            <span class="badge bg-white text-muted border small" id="soundStatusBadge">Off</span>
+          </div>
+          <div class="d-flex gap-2 align-items-center">
+            <select class="form-select form-select-sm" id="ambientSoundSelect">
+              <option value="off" selected>None (Silent)</option>
+              <option value="rain">🌧️ Gentle Rain Waves</option>
+              <option value="alpha">🌊 Alpha Waves (Focus 10Hz)</option>
+              <option value="white">💨 Focus White Noise</option>
+            </select>
+            <input type="range" class="form-range" id="soundVolume" min="0" max="1" step="0.05" value="0.5" style="max-width: 90px;" title="Volume">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 bg-light p-3 text-center d-block">
+        <small class="text-muted">Audio runs offline via Web Audio API. Chimes automatically when timer completes.</small>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
